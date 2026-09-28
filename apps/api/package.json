@@ -1,0 +1,38 @@
+{
+  "name": "@visualinux/api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file=../../.env ../../node_modules/tsx/dist/cli.mjs watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node --env-file=../../.env dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node --env-file=../../.env ../../node_modules/tsx/dist/cli.mjs src/db/migrate.ts",
+    "db:dev-setup": "node --env-file=../../.env ../../node_modules/tsx/dist/cli.mjs src/db/dev-setup.ts",
+    "db:seed-commands": "node --env-file=../../.env ../../node_modules/tsx/dist/cli.mjs src/db/seed-commands.ts",
+    "db:seed-templates": "node --env-file=../../.env ../../node_modules/tsx/dist/cli.mjs src/db/seed-templates.ts"
+  },
+  "dependencies": {
+    "fastify": "^5.10.0",
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/cors": "^10.0.1",
+    "drizzle-orm": "^0.45.2",
+    "pg": "^8.13.1",
+    "jose": "^5.9.6",
+    "zod": "^3.23.8",
+    "@visualinux/shared-types": "*",
+    "@visualinux/command-registry": "*",
+    "@visualinux/simulation-engine": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "tsx": "^4.16.2",
+    "@types/node": "^20.14.15",
+    "@types/pg": "^8.11.10",
+    "drizzle-kit": "^0.31.10",
+    "vitest": "^2.1.5"
+  }
+}

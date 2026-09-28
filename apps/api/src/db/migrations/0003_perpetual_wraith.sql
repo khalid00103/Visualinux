@@ -1,0 +1,1 @@
+ALTER TABLE "sandboxes" ADD COLUMN "current_directory_id" uuid;
