@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
 import { TreeNode } from "../../components/filesystem/TreeNode.js";
 import {
@@ -22,16 +22,44 @@ export function MkdirLessonPage() {
   const [draft, setDraft] = useState("");
   const [taskComplete, setTaskComplete] = useState(false);
 
+  const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
+
+  const highlightTimerRef = useRef<number | null>(null);
+  const highlightFrameRef = useRef<number | null>(null);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const root = nodes.find((node) => node.parentId === null);
 
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current !== null) {
+        window.clearTimeout(highlightTimerRef.current);
+      }
+
+      if (highlightFrameRef.current !== null) {
+        window.cancelAnimationFrame(highlightFrameRef.current);
+      }
+    };
+  }, []);
+
   function handleReset() {
     const fresh = buildInitialFilesystem();
+
+    if (highlightTimerRef.current !== null) {
+      window.clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = null;
+    }
+
+    if (highlightFrameRef.current !== null) {
+      window.cancelAnimationFrame(highlightFrameRef.current);
+      highlightFrameRef.current = null;
+    }
 
     setNodes(fresh.nodes);
     setHistory([]);
     setTaskComplete(false);
+    setHighlightedNodeIds([]);
     setDraft("");
 
     inputRef.current?.focus();
@@ -54,22 +82,75 @@ export function MkdirLessonPage() {
 
     setNodes(result.nodes);
 
+    let output = result.message;
+
+    if (result.success && result.createdName) {
+      const children = result.nodes.filter(
+        (node) => node.parentId === currentDirectoryId,
+      );
+
+      const names = children.map((node) => node.name);
+
+      output = [
+        result.message,
+        "",
+        "Visualized result:",
+        "student",
+        ...names.map((name, index) => {
+          const prefix =
+            index === names.length - 1
+              ? "└── "
+              : "├── ";
+
+          return `${prefix}${name}`;
+        }),
+      ].join("\n");
+    }
+
     setHistory((previous) => [
       ...previous,
       {
         input,
-        output: result.message,
+        output,
         success: result.success,
       },
     ]);
 
     setDraft("");
 
-    if (
-      result.success &&
-      result.createdName === "my-project"
-    ) {
-      setTaskComplete(true);
+    if (result.success && result.createdName) {
+      const createdNode = result.nodes.find(
+        (node) =>
+          node.parentId === currentDirectoryId &&
+          node.name === result.createdName,
+      );
+
+      if (createdNode) {
+        if (highlightTimerRef.current !== null) {
+          window.clearTimeout(highlightTimerRef.current);
+        }
+
+        if (highlightFrameRef.current !== null) {
+          window.cancelAnimationFrame(highlightFrameRef.current);
+        }
+
+        setHighlightedNodeIds([]);
+
+        highlightFrameRef.current = window.requestAnimationFrame(() => {
+          setHighlightedNodeIds([createdNode.nodeId]);
+
+          highlightTimerRef.current = window.setTimeout(() => {
+            setHighlightedNodeIds([]);
+            highlightTimerRef.current = null;
+          }, 10_000);
+
+          highlightFrameRef.current = null;
+        });
+      }
+
+      if (result.createdName === "my-project") {
+        setTaskComplete(true);
+      }
     }
   }
 
@@ -155,6 +236,7 @@ export function MkdirLessonPage() {
             node={root}
             allNodes={nodes}
             currentDirectoryId={currentDirectoryId}
+            highlightedNodeIds={highlightedNodeIds}
           />
         ) : null
       }

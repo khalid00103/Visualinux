@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   IconFolder,
   IconFile,
@@ -36,6 +36,18 @@ export function TreeNode({
     (n) => n.parentId === node.nodeId,
   );
 
+  const previousChildCountRef = useRef(children.length);
+
+  useEffect(() => {
+    const previousChildCount = previousChildCountRef.current;
+
+    if (children.length > previousChildCount) {
+      setIsExpanded(true);
+    }
+
+    previousChildCountRef.current = children.length;
+  }, [children.length]);
+
   const hasChildren =
     node.nodeType === "directory" && children.length > 0;
 
@@ -54,7 +66,7 @@ export function TreeNode({
           alignItems: "center",
           gap: "6px",
           padding: "4px 8px",
-          paddingLeft: `${8 + depth * 16}px`,
+          paddingLeft: `${8 + depth * 24}px`,
           borderRadius: "var(--radius-sm)",
 
           /*
@@ -86,8 +98,16 @@ export function TreeNode({
           setIsExpanded((v) => !v)
         }
       >
-        {node.nodeType === "directory" ? (
-          hasChildren ? (
+        <div
+          style={{
+            width: "14px",
+            minWidth: "14px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          {node.nodeType === "directory" && hasChildren ? (
             isExpanded ? (
               <IconChevronDown
                 size={14}
@@ -99,14 +119,20 @@ export function TreeNode({
                 color="var(--text-muted)"
               />
             )
-          ) : (
-            <span style={{ width: 14 }} />
-          )
-        ) : (
-          <span style={{ width: 14 }} />
-        )}
+          ) : null}
+        </div>
 
-        {isCurrent && <CurrentDirectoryMarker />}
+        <div
+          style={{
+            width: "10px",
+            minWidth: "10px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          {isCurrent && <CurrentDirectoryMarker />}
+        </div>
 
         <Icon
           size={16}
