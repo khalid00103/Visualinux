@@ -69,3 +69,43 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+@keyframes visualinuxNodeGlow {
+  0% {
+    box-shadow:
+      0 0 0 rgba(250, 204, 21, 0.15);
+  }
+
+  15% {
+    box-shadow:
+      0 0 12px rgba(250, 204, 21, 0.75),
+      0 0 24px rgba(250, 204, 21, 0.35);
+  }
+
+  35% {
+    box-shadow:
+      0 0 7px rgba(250, 204, 21, 0.55),
+      0 0 15px rgba(250, 204, 21, 0.25);
+  }
+
+  55% {
+    box-shadow:
+      0 0 11px rgba(250, 204, 21, 0.65),
+      0 0 20px rgba(250, 204, 21, 0.3);
+  }
+
+  75% {
+    box-shadow:
+      0 0 6px rgba(250, 204, 21, 0.4),
+      0 0 12px rgba(250, 204, 21, 0.18);
+  }
+
+  100% {
+    box-shadow:
+      0 0 0 rgba(250, 204, 21, 0);
+  }
+}
+
+.visualinux-node-highlight {
+  animation: visualinuxNodeGlow 10s ease-in-out forwards;
+}

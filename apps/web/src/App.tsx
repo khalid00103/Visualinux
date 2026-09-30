@@ -7,6 +7,7 @@ import { DashboardPage } from "./pages/DashboardPage/DashboardPage.js";
 import { SettingsPage } from "./pages/SettingsPage/SettingsPage.js";
 import { DevTerminalPage } from "./pages/DevTerminalPage/DevTerminalPage.js";
 import { MkdirLessonPage } from "./pages/MkdirLessonPage/MkdirLessonPage.js";
+import { LsLessonPage } from "./pages/LsLessonPage/LsLessonPage.js";
 import { useAuthStore } from "./store/authStore.js";
 import { authApi } from "./api/authApi.js";
 import { usersApi } from "./api/usersApi.js";
@@ -41,6 +42,7 @@ export function App() {
       <Routes>
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/learn/mkdir" element={<MkdirLessonPage />} />
+        <Route path="/learn/ls" element={<LsLessonPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route
           path="/dashboard"

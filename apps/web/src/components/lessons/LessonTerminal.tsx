@@ -71,6 +71,7 @@ export function LessonTerminal({
                 color: entry.success
                   ? "var(--text-secondary)"
                   : "var(--role-danger)",
+                whiteSpace: "pre",
               }}
             >
               {entry.output}
