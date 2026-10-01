@@ -11,6 +11,7 @@ import { LsLessonPage } from "./pages/LsLessonPage/LsLessonPage.js";
 import { TouchLessonPage } from "./pages/TouchLessonPage/TouchLessonPage.js";
 import { CdLessonPage } from "./pages/CdLessonPage/CdLessonPage.js";
 import {PwdLessonPage} from "./pages/PwdLessonPage/PwdLessonPage.js";
+import { RmLessonPage } from "./pages/RmLessonPage/RmLessonPage.js";
 import { useAuthStore } from "./store/authStore.js";
 import { authApi } from "./api/authApi.js";
 import { usersApi } from "./api/usersApi.js";
@@ -49,6 +50,7 @@ export function App() {
         <Route path="/learn/touch" element={<TouchLessonPage />} />
         <Route path="/learn/cd" element={<CdLessonPage />} />
         <Route path="/learn/pwd" element={<PwdLessonPage />} />
+        <Route path="/learn/rm" element={<RmLessonPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route
           path="/dashboard"

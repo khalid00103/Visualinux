@@ -14,6 +14,8 @@ export interface TreeNodeProps {
   allNodes: FilesystemNodeSummary[];
   currentDirectoryId: string | null;
   highlightedNodeIds?: string[];
+  removingNodeIds?: string[];
+  expandNodeIds?: string[];
   depth?: number;
 }
 
@@ -28,9 +30,20 @@ export function TreeNode({
   allNodes,
   currentDirectoryId,
   highlightedNodeIds = [],
+  removingNodeIds = [],
+  expandNodeIds = [],
   depth = 0,
 }: TreeNodeProps) {
-  const [isExpanded, setIsExpanded] = useState(depth < 2);
+  
+  const [isExpanded, setIsExpanded] = useState(
+    depth < 2 || expandNodeIds.includes(node.nodeId),
+  );
+
+  useEffect(() => {
+    if (expandNodeIds.includes(node.nodeId)) {
+      setIsExpanded(true);
+    }
+  }, [expandNodeIds, node.nodeId]);
 
   const children = allNodes.filter(
     (n) => n.parentId === node.nodeId,
@@ -54,13 +67,20 @@ export function TreeNode({
   const isCurrent = node.nodeId === currentDirectoryId;
 
   const isHighlighted = highlightedNodeIds.includes(node.nodeId);
+  const isRemoving = removingNodeIds.includes(node.nodeId);
 
   const Icon = iconFor(node.nodeType);
 
   return (
     <div>
       <div
-        className={isHighlighted ? "visualinux-node-highlight" : undefined}
+        className={
+          isRemoving
+            ? "visualinux-node-removal"
+            : isHighlighted
+              ? "visualinux-node-highlight"
+              : undefined
+        }
         style={{
           display: "flex",
           alignItems: "center",
@@ -86,9 +106,11 @@ export function TreeNode({
            * Keep the yellow highlight subtle outside the animation.
            * The CSS animation provides the pulsing glow.
            */
-          border: isHighlighted
-            ? "1px solid rgba(250, 204, 21, 0.35)"
-            : "1px solid transparent",
+          border: isRemoving
+            ? "1px solid rgba(239, 68, 68, 0.45)"
+            : isHighlighted
+              ? "1px solid rgba(250, 204, 21, 0.35)"
+              : "1px solid transparent",
 
           transition:
             "background 180ms ease, border-color 180ms ease",
@@ -139,9 +161,11 @@ export function TreeNode({
           color={
             isCurrent
               ? "var(--role-success)"
-              : isHighlighted
-                ? "#facc15"
-                : "var(--text-secondary)"
+              : isRemoving
+                ? "#ef4444"
+                : isHighlighted
+                  ? "#facc15"
+                  : "var(--text-secondary)"
           }
         />
 
@@ -150,9 +174,11 @@ export function TreeNode({
             fontSize: "13px",
             color: isCurrent
               ? "var(--role-success)"
-              : isHighlighted
-                ? "#facc15"
-                : "var(--text-primary)",
+              : isRemoving
+                ? "#ef4444"
+                : isHighlighted
+                  ? "#facc15"
+                  : "var(--text-primary)",
           }}
         >
           {node.name}
@@ -179,6 +205,8 @@ export function TreeNode({
             allNodes={allNodes}
             currentDirectoryId={currentDirectoryId}
             highlightedNodeIds={highlightedNodeIds}
+            removingNodeIds={removingNodeIds}
+            expandNodeIds={expandNodeIds}
             depth={depth + 1}
           />
         ))}
