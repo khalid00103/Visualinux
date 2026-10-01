@@ -1,17 +1,21 @@
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
 
 let counter = 0;
+
 function nextId(): string {
   counter += 1;
-  return `lesson-node-${counter}`;
+  return `mkdir-lesson-node-${counter}`;
 }
 
 /** / -> home -> student (current directory) */
-export function buildInitialFilesystem(): { nodes: FilesystemNodeSummary[]; rootId: string; studentId: string } {
-  counter = 0;
-  const rootId = nextId();
-  const homeId = nextId();
-  const studentId = nextId();
+export function buildInitialFilesystem(): {
+  nodes: FilesystemNodeSummary[];
+  rootId: string;
+  studentId: string;
+} {
+  const rootId = "mkdir-lesson-root";
+  const homeId = "mkdir-lesson-home";
+  const studentId = "mkdir-lesson-student";
 
   const nodes: FilesystemNodeSummary[] = [
     { nodeId: rootId, parentId: null, nodeType: "directory", name: "/", permissions: "rwxr-xr-x", owner: "root", groupOwner: "root", hasContent: false, currentDirectory: false },
