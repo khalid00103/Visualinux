@@ -8,7 +8,8 @@ import { SettingsPage } from "./pages/SettingsPage/SettingsPage.js";
 import { DevTerminalPage } from "./pages/DevTerminalPage/DevTerminalPage.js";
 import { MkdirLessonPage } from "./pages/MkdirLessonPage/MkdirLessonPage.js";
 import { LsLessonPage } from "./pages/LsLessonPage/LsLessonPage.js";
-import { TouchLessonPage } from "./pages/learn/TouchLessonPage.js";
+import { TouchLessonPage } from "./pages/TouchLessonPage/TouchLessonPage.js";
+import { CdLessonPage } from "./pages/CdLessonPage/CdLessonPage.js";
 import { useAuthStore } from "./store/authStore.js";
 import { authApi } from "./api/authApi.js";
 import { usersApi } from "./api/usersApi.js";
@@ -45,6 +46,7 @@ export function App() {
         <Route path="/learn/mkdir" element={<MkdirLessonPage />} />
         <Route path="/learn/ls" element={<LsLessonPage />} />
         <Route path="/learn/touch" element={<TouchLessonPage />} />
+        <Route path="/learn/cd" element={<CdLessonPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route
           path="/dashboard"
