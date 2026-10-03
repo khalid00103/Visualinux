@@ -14,6 +14,7 @@ import {PwdLessonPage} from "./pages/PwdLessonPage/PwdLessonPage.js";
 import { RmLessonPage } from "./pages/RmLessonPage/RmLessonPage.js";
 import { CpLessonPage } from "./pages/CpLessonPage/CpLessonPage.js";
 import { MvLessonPage } from "./pages/MvLessonPage/MvLessonPage.js";
+import { CatLessonPage } from "./pages/CatLessonPage/CatLessonPage.js";
 import { useAuthStore } from "./store/authStore.js";
 import { authApi } from "./api/authApi.js";
 import { usersApi } from "./api/usersApi.js";
@@ -55,6 +56,7 @@ export function App() {
         <Route path="/learn/rm" element={<RmLessonPage />} />
         <Route path="/learn/cp" element={<CpLessonPage />} />
         <Route path="/learn/mv" element={<MvLessonPage />} />
+        <Route path="/learn/cat" element={<CatLessonPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route
           path="/dashboard"
