@@ -15,6 +15,17 @@ import { RmLessonPage } from "./pages/RmLessonPage/RmLessonPage.js";
 import { CpLessonPage } from "./pages/CpLessonPage/CpLessonPage.js";
 import { MvLessonPage } from "./pages/MvLessonPage/MvLessonPage.js";
 import { CatLessonPage } from "./pages/CatLessonPage/CatLessonPage.js";
+import { EchoLessonPage } from "./pages/EchoLessonPage/EchoLessonPage.js";
+import { HeadLessonPage } from "./pages/HeadLessonPage/HeadLessonPage.js";
+import { TailLessonPage } from "./pages/TailLessonPage/TailLessonPage.js";
+import { GrepLessonPage } from "./pages/GrepLessonPage/GrepLessonPage.js";
+import { WcLessonPage } from "./pages/WcLessonPage/WcLessonPage.js";
+import { SortLessonPage } from "./pages/SortLessonPage/SortLessonPage.js";
+import { ChmodLessonPage } from "./pages/ChmodLessonPage/ChmodLessonPage.js";
+import { ChownLessonPage } from "./pages/ChownLessonPage/ChownLessonPage.js";
+import { WhoamiLessonPage } from "./pages/WhoamiLessonPage/WhoamiLessonPage.js";
+import { ClearLessonPage } from "./pages/ClearLessonPage/ClearLessonPage.js";
+import { ManLessonPage } from "./pages/ManLessonPage/ManLessonPage.js";
 import { useAuthStore } from "./store/authStore.js";
 import { authApi } from "./api/authApi.js";
 import { usersApi } from "./api/usersApi.js";
@@ -57,6 +68,17 @@ export function App() {
         <Route path="/learn/cp" element={<CpLessonPage />} />
         <Route path="/learn/mv" element={<MvLessonPage />} />
         <Route path="/learn/cat" element={<CatLessonPage />} />
+        <Route path="/learn/echo" element={<EchoLessonPage />} />
+        <Route path="/learn/head" element={<HeadLessonPage />} />
+        <Route path="/learn/tail" element={<TailLessonPage />} />
+        <Route path="/learn/grep" element={<GrepLessonPage />} />
+        <Route path="/learn/wc" element={<WcLessonPage />} />
+        <Route path="/learn/sort" element={<SortLessonPage />} />
+        <Route path="/learn/chmod" element={<ChmodLessonPage />} />
+        <Route path="/learn/chown" element={<ChownLessonPage />} />
+        <Route path="/learn/whoami" element={<WhoamiLessonPage />} />
+        <Route path="/learn/clear" element={<ClearLessonPage />} />
+        <Route path="/learn/man" element={<ManLessonPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route
           path="/dashboard"
