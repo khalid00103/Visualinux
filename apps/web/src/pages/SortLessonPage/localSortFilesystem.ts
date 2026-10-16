@@ -1,4 +1,5 @@
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
+import { runLessonCommand } from "../../terminal/lessonCommandRuntime.js";
 
 export function buildInitialFilesystem(): {
   nodes: FilesystemNodeSummary[];
@@ -64,84 +65,10 @@ export function buildInitialFilesystem(): {
   };
 }
 
-const NAMES_CONTENT = [
-  "Zebra",
-  "Apple",
-  "Mango",
-  "Banana",
-  "Orange",
-  "Grape",
-];
-
 export interface SortResult {
-  success: boolean;
-  message: string;
-  nodes: FilesystemNodeSummary[];
+  success: boolean; message: string; nodes: FilesystemNodeSummary[];
 }
 
-export function runSort(
-  rawInput: string,
-  nodes: FilesystemNodeSummary[],
-): SortResult {
-  const input = rawInput.trim();
-
-  if (!input) {
-    return {
-      success: false,
-      message: "Please type a command.",
-      nodes,
-    };
-  }
-
-  if (!input.startsWith("sort")) {
-    return {
-      success: false,
-      message: "This lesson only teaches sort. Try: sort names.txt",
-      nodes,
-    };
-  }
-
-  const tokens = input.split(/\s+/);
-
-  if (tokens[0] !== "sort") {
-    return {
-      success: false,
-      message: "This lesson only teaches sort. Try: sort names.txt",
-      nodes,
-    };
-  }
-
-  if (tokens.length === 1) {
-    return {
-      success: false,
-      message: "sort: missing file operand.",
-      nodes,
-    };
-  }
-
-  if (tokens.length > 2) {
-    return {
-      success: false,
-      message: "This lesson supports one file at a time.",
-      nodes,
-    };
-  }
-
-  const filename = tokens[1];
-
-  if (filename !== "names.txt") {
-    return {
-      success: false,
-      message: `sort: ${filename}: No such file.`,
-      nodes,
-    };
-  }
-
-  const sortedLines = [...NAMES_CONTENT].sort();
-
-  return {
-    success: true,
-    message: sortedLines.join("\n"),
-    nodes,
-  };
+export function runSort(rawInput: string, nodes: FilesystemNodeSummary[]): SortResult {
+  return runLessonCommand({ command: "sort", rawInput, nodes }) as SortResult;
 }

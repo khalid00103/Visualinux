@@ -30,7 +30,8 @@ export function TopNav() {
         justifyContent: "space-between",
         padding: "var(--space-md) var(--space-xl)",
         borderBottom: "1px solid var(--border)",
-        background: "var(--surface-1)",
+        //background: "var(--surface-1)",
+        backgroundColor: "#352d74",
       }}
     >
       <span style={{ fontWeight: 500, fontSize: "15px" }}>VisuaLinux</span>

@@ -7,6 +7,7 @@ import { summaryToTreeNode, applyDiffToNodes } from "./nodeMirror.js";
 import { FilesystemTree, parseCommandLine, interpret, isDestructiveInvocation } from "@visualinux/simulation-engine";
 import { createClientRegistryLookup } from "./client-registry-lookup.js";
 import type { FilesystemDiff } from "@visualinux/shared-types";
+import { createCommandPresentation } from "./commandPresentation.js";
 
 /**
  * Content-reading commands have nothing to optimistically simulate against —
@@ -15,7 +16,7 @@ import type { FilesystemDiff } from "@visualinux/shared-types";
  * confirmation (never optimistically delete before the user has confirmed).
  */
 const SERVER_ROUNDTRIP_ONLY = new Set([
-  "cat", "head", "tail", "grep", "sort", "uniq", "wc", "diff", "nano", "tree", "find", "stat", "du", "df",
+  "cat", "head", "tail", "grep", "sort", "uniq", "wc", "diff", "nano", "tree", "find", "stat", "du", "df", "clear",
 ]);
 
 export interface PendingConfirmation {
@@ -31,9 +32,10 @@ export function useCommandExecutionOrchestrator() {
     currentDirectoryId,
     pushHistoryEntry,
     replaceLastHistoryEntry,
+    clearHistory,
     setNodes,
     setCurrentDirectoryId,
-    queueAnimationEvents,
+    queueAnimationPlan,
   } = useSessionStore();
 
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
@@ -92,16 +94,59 @@ export function useCommandExecutionOrchestrator() {
         // this runs every time, not only when the optimistic guess was wrong,
         // since optimistically-generated node ids never match the server's
         // real ones anyway (see nodeMirror.ts).
-        setNodes(applyDiffToNodes(preSnapshot, response.diff));
-        setCurrentDirectoryId(response.newCurrentDirectoryId ?? preCurrentDirectoryId);
+        const deletedNodeIds = response.diff.nodesDeleted;
+        let reconciledNodes;
 
-        if (skipOptimistic) {
-          pushHistoryEntry({ rawInput, outputText: response.outputText, success: response.success, isPending: false });
+        if (deletedNodeIds.length > 0) {
+          // Keep deleted nodes in the UI tree until the shared animation
+          // controller finishes the 3-second red removal sequence.
+          const diffWithoutDeletes: FilesystemDiff = {
+            ...response.diff,
+            nodesDeleted: [],
+          };
+          reconciledNodes = applyDiffToNodes(preSnapshot, diffWithoutDeletes);
         } else {
-          replaceLastHistoryEntry({ rawInput, outputText: response.outputText, success: response.success, isPending: false });
+          reconciledNodes = applyDiffToNodes(preSnapshot, response.diff);
         }
 
-        queueAnimationEvents(response.animationEvents);
+        setNodes(reconciledNodes);
+
+        const presentation = createCommandPresentation({
+          commandName: primaryCommand,
+          args: parsed.stages[0]?.args ?? [],
+          flags: parsed.stages[0]?.flags ?? [],
+          isSingleCommand: parsed.stages.length === 1 && parsed.redirect === null,
+          rawInput,
+          response,
+          beforeNodes: preSnapshot,
+          afterNodes: reconciledNodes,
+          currentDirectoryId: preCurrentDirectoryId,
+          newCurrentDirectoryId: response.newCurrentDirectoryId,
+        });
+
+        if (
+          presentation.highlightNodeIds.length > 0 ||
+          presentation.removalNodeIds.length > 0 ||
+          presentation.expandNodeIds.length > 0
+        ) {
+          queueAnimationPlan({
+            highlightNodeIds: presentation.highlightNodeIds,
+            removalNodeIds: presentation.removalNodeIds,
+            expandNodeIds: presentation.expandNodeIds,
+          });
+        }
+        setCurrentDirectoryId(response.newCurrentDirectoryId ?? preCurrentDirectoryId);
+
+        if (primaryCommand === "clear" && response.success && parsed.stages.length === 1 && parsed.redirect === null) {
+          // Match the guided clear lesson: clear the visible terminal history;
+          // the backend still records the command in persistent command history.
+          clearHistory();
+        } else if (skipOptimistic) {
+          pushHistoryEntry({ rawInput, outputText: presentation.outputText, success: response.success, isPending: false });
+        } else {
+          replaceLastHistoryEntry({ rawInput, outputText: presentation.outputText, success: response.success, isPending: false });
+        }
+
         setPendingConfirmation(null);
       } catch (err) {
         // A true API-level failure (network error, or the 409 destructive-
@@ -130,9 +175,10 @@ export function useCommandExecutionOrchestrator() {
       nodes,
       pushHistoryEntry,
       replaceLastHistoryEntry,
+      clearHistory,
       setNodes,
       setCurrentDirectoryId,
-      queueAnimationEvents,
+      queueAnimationPlan,
     ]
   );
 

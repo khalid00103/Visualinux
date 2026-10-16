@@ -26,6 +26,7 @@ import { ChownLessonPage } from "./pages/ChownLessonPage/ChownLessonPage.js";
 import { WhoamiLessonPage } from "./pages/WhoamiLessonPage/WhoamiLessonPage.js";
 import { ClearLessonPage } from "./pages/ClearLessonPage/ClearLessonPage.js";
 import { ManLessonPage } from "./pages/ManLessonPage/ManLessonPage.js";
+import { PracticePage } from "./pages/PracticePage/PracticePage.js";
 import { useAuthStore } from "./store/authStore.js";
 import { authApi } from "./api/authApi.js";
 import { usersApi } from "./api/usersApi.js";
@@ -79,6 +80,7 @@ export function App() {
         <Route path="/learn/whoami" element={<WhoamiLessonPage />} />
         <Route path="/learn/clear" element={<ClearLessonPage />} />
         <Route path="/learn/man" element={<ManLessonPage />} />
+        <Route path="/practice" element={<PracticePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route
           path="/dashboard"

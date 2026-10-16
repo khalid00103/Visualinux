@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import type { AnimationEvent, FilesystemNodeSummary } from "@visualinux/shared-types";
+import type { FilesystemNodeSummary } from "@visualinux/shared-types";
+import type { FilesystemAnimationPlan } from "../terminal/commandPresentation.js";
 
 export interface TerminalHistoryEntry {
   rawInput: string;
@@ -14,23 +15,17 @@ interface SessionState {
   nodes: FilesystemNodeSummary[];
   currentDirectoryId: string | null;
   history: TerminalHistoryEntry[];
-  /**
-   * Queued here for Milestone 5's Animation Engine to consume and clear. This
-   * milestone's Filesystem Panel renders nodes appearing/disappearing directly
-   * (Component Hierarchy §3's explicit scope note: "without full animation
-   * choreography yet") but still populates this queue now, since the event
-   * stream itself — not just its eventual consumer — is part of what this
-   * milestone establishes.
-   */
-  pendingAnimationEvents: AnimationEvent[];
+  /** Command-specific visual instructions waiting for the filesystem panel. */
+  pendingAnimationPlan: FilesystemAnimationPlan | null;
 
   initializeSandbox: (sandboxId: string, nodes: FilesystemNodeSummary[], currentDirectoryId: string) => void;
   setNodes: (nodes: FilesystemNodeSummary[]) => void;
   setCurrentDirectoryId: (id: string) => void;
   pushHistoryEntry: (entry: TerminalHistoryEntry) => void;
   replaceLastHistoryEntry: (entry: TerminalHistoryEntry) => void;
-  queueAnimationEvents: (events: AnimationEvent[]) => void;
-  clearAnimationEvents: () => void;
+  clearHistory: () => void;
+  queueAnimationPlan: (plan: FilesystemAnimationPlan) => void;
+  clearAnimationPlan: () => void;
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -38,10 +33,10 @@ export const useSessionStore = create<SessionState>((set) => ({
   nodes: [],
   currentDirectoryId: null,
   history: [],
-  pendingAnimationEvents: [],
+  pendingAnimationPlan: null,
 
   initializeSandbox: (sandboxId, nodes, currentDirectoryId) =>
-    set({ sandboxId, nodes, currentDirectoryId, history: [], pendingAnimationEvents: [] }),
+    set({ sandboxId, nodes, currentDirectoryId, history: [], pendingAnimationPlan: null }),
 
   setNodes: (nodes) => set({ nodes }),
 
@@ -52,8 +47,9 @@ export const useSessionStore = create<SessionState>((set) => ({
   replaceLastHistoryEntry: (entry) =>
     set((state) => ({ history: [...state.history.slice(0, -1), entry] })),
 
-  queueAnimationEvents: (events) =>
-    set((state) => ({ pendingAnimationEvents: [...state.pendingAnimationEvents, ...events] })),
+  clearHistory: () => set({ history: [] }),
 
-  clearAnimationEvents: () => set({ pendingAnimationEvents: [] }),
+  queueAnimationPlan: (plan) => set({ pendingAnimationPlan: plan }),
+
+  clearAnimationPlan: () => set({ pendingAnimationPlan: null }),
 }));

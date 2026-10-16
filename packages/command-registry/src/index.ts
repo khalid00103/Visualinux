@@ -9,7 +9,8 @@ export * from "./types.js";
 import { filesystemCommands } from "./commands/filesystem.js";
 import { textProcessingCommands } from "./commands/text-processing.js";
 import type { CommandDefinition } from "./types.js";
+import { systemCommands } from "./commands/system.js";
 
-export const ALL_COMMANDS: CommandDefinition[] = [...filesystemCommands, ...textProcessingCommands];
+export const ALL_COMMANDS: CommandDefinition[] = [...filesystemCommands, ...textProcessingCommands, ...systemCommands];
 
 export const COMMAND_REGISTRY_PACKAGE_VERSION = "0.2.0";

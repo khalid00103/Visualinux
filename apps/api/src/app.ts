@@ -8,6 +8,9 @@ import { registerCommandsRoutes } from "./commands/commands.routes.js";
 import { registerFilesystemRoutes } from "./filesystem/filesystem.routes.js";
 import { registerTerminalRoutes } from "./terminal/terminal.routes.js";
 import { registerDevRoutes } from "./filesystem/dev-routes.js";
+import { registerPracticeRoutes } from "./filesystem/practice.routes.js";
+import { registerLearningRoutes } from "./learning/learning.routes.js";
+
 import { env } from "./config/env.js";
 
 export async function buildApp(options: { logger?: boolean } = {}): Promise<FastifyInstance> {
@@ -27,8 +30,10 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
 
   registerAuthRoutes(app);
   registerUsersRoutes(app);
+  registerLearningRoutes(app);
   registerCommandsRoutes(app);
   registerFilesystemRoutes(app);
+  registerPracticeRoutes(app);
   registerTerminalRoutes(app);
 
   // TEMPORARY, Milestone 4 only — see dev-routes.ts. Gated to non-production so

@@ -106,10 +106,11 @@ export const terminalService = {
             await nodesRepository.softDelete(op.nodeId, tx);
             diff.nodesDeleted.push(op.nodeId);
           } else if (op.type === "moveNode") {
+            const previousParentId = tree.getNode(op.nodeId)?.parentId ?? null;
             const updates: { parentId: string; name?: string } = { parentId: op.newParentId };
             if (op.newName) updates.name = op.newName;
             const updated = await nodesRepository.update(op.nodeId, updates, tx);
-            diff.nodesMoved.push({ nodeId: op.nodeId, fromParentId: null, toParentId: op.newParentId });
+            diff.nodesMoved.push({ nodeId: op.nodeId, fromParentId: previousParentId, toParentId: op.newParentId });
             if (updated) {
               diff.nodesModified.push({
                 nodeId: updated.id,

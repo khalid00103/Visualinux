@@ -1,4 +1,5 @@
 
+import { runLessonCommand } from "../../terminal/lessonCommandRuntime.js";
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
 
 export function buildInitialFilesystem(): {
@@ -74,102 +75,9 @@ export function buildInitialFilesystem(): {
 }
 
 export interface CatResult {
-  success: boolean;
-  message: string;
-  nodes: FilesystemNodeSummary[];
+  success: boolean; message: string; nodes: FilesystemNodeSummary[];
 }
 
-const FILE_CONTENTS: Record<string, string> = {
-  "notes.txt": [
-    "Welcome to Visualinux!",
-    "Linux lets you work with files and directories.",
-    "The cat command displays the contents of a file.",
-  ].join("\n"),
-};
-
-export function runCat(
-  rawInput: string,
-  nodes: FilesystemNodeSummary[],
-  currentDirectoryId: string,
-): CatResult {
-  const tokens = rawInput.trim().split(/\s+/).filter(Boolean);
-
-  if (tokens.length === 0) {
-    return {
-      success: false,
-      message: "Please type a command.",
-      nodes,
-    };
-  }
-
-  if (tokens[0] !== "cat") {
-    return {
-      success: false,
-      message: "This lesson only teaches cat. Try: cat notes.txt",
-      nodes,
-    };
-  }
-
-  const args = tokens.slice(1);
-
-  if (args.length !== 1) {
-    return {
-      success: false,
-      message: "Usage: cat <file-name>",
-      nodes,
-    };
-  }
-
-  const [fileName] = args;
-
-  if (
-    fileName.startsWith("-") ||
-    !/^[A-Za-z0-9._-]+$/.test(fileName) ||
-    fileName === "." ||
-    fileName === ".."
-  ) {
-    return {
-      success: false,
-      message: "cat: invalid file name. Options are not taught in this lesson.",
-      nodes,
-    };
-  }
-
-  const target = nodes.find(
-    (node) =>
-      node.parentId === currentDirectoryId &&
-      node.name === fileName,
-  );
-
-  if (!target) {
-    return {
-      success: false,
-      message: `cat: ${fileName}: No such file or directory`,
-      nodes,
-    };
-  }
-
-  if (target.nodeType !== "file") {
-    return {
-      success: false,
-      message: `cat: ${fileName}: Is a directory`,
-      nodes,
-    };
-  }
-
-  const content = FILE_CONTENTS[fileName];
-
-  if (content === undefined) {
-    return {
-      success: false,
-      message: `cat: ${fileName}: This demo file has no sample content configured.`,
-      nodes,
-    };
-  }
-
-  return {
-    success: true,
-    message: content,
-    nodes,
-  };
+export function runCat(rawInput: string, nodes: FilesystemNodeSummary[], currentDirectoryId: string): CatResult {
+  return runLessonCommand({ command: "cat", rawInput, nodes, currentDirectoryId }) as CatResult;
 }

@@ -1,8 +1,8 @@
 import {
-  useEffect,
   useRef,
   useState,
 } from "react";
+import { useNavigate } from "react-router-dom";
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
 import { TreeNode } from "../../components/filesystem/TreeNode.js";
 import {
@@ -16,8 +16,12 @@ import {
   buildInitialFilesystem,
   runTouch,
 } from "./localTouchFilesystem.js";
+import { useFilesystemAnimationController } from "../../terminal/useFilesystemAnimationController.js";
+import { createLessonAnimationPlan, formatVisualizedChildren } from "../../terminal/commandPresentation.js";
+import { applyFilesystemAnimationPlan } from "../../terminal/useFilesystemAnimationController.js";
 
 export function TouchLessonPage() {
+  const navigate = useNavigate();
   const initial = buildInitialFilesystem();
 
   const [nodes, setNodes] = useState<
@@ -36,61 +40,20 @@ export function TouchLessonPage() {
 
   const [taskComplete, setTaskComplete] = useState(false);
 
-  const [highlightedNodeIds, setHighlightedNodeIds] =
-    useState<string[]>([]);
-
-//  const [highlightAnimationKey, setHighlightAnimationKey] =
-//  useState(0);
-
-  const highlightTimerRef = useRef<number | null>(null);
-
-  const highlightFrameRef = useRef<number | null>(null);
-
+  const { highlightedNodeIds, expandNodeIds, highlightNodes, expandNodes, resetAnimations } = useFilesystemAnimationController();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const root = nodes.find(
     (node) => node.parentId === null,
   );
 
-  useEffect(() => {
-    return () => {
-      if (highlightTimerRef.current !== null) {
-        window.clearTimeout(
-          highlightTimerRef.current,
-        );
-      }
-
-      if (highlightFrameRef.current !== null) {
-        window.cancelAnimationFrame(
-          highlightFrameRef.current,
-        );
-      }
-    };
-  }, []);
-
   function handleReset() {
     const fresh = buildInitialFilesystem();
 
-    if (highlightTimerRef.current !== null) {
-      window.clearTimeout(
-        highlightTimerRef.current,
-      );
-
-      highlightTimerRef.current = null;
-    }
-
-    if (highlightFrameRef.current !== null) {
-      window.cancelAnimationFrame(
-        highlightFrameRef.current,
-      );
-
-      highlightFrameRef.current = null;
-    }
-
+    resetAnimations();
     setNodes(fresh.nodes);
     setHistory([]);
     setTaskComplete(false);
-    setHighlightedNodeIds([]);
     setDraft("");
 
     inputRef.current?.focus();
@@ -128,38 +91,10 @@ export function TouchLessonPage() {
       );
 
       if (createdNode) {
-        if (highlightTimerRef.current !== null) {
-          window.clearTimeout(
-            highlightTimerRef.current,
-          );
-        }
-
-        if (highlightFrameRef.current !== null) {
-          window.cancelAnimationFrame(
-            highlightFrameRef.current,
-          );
-        }
-
-        setHighlightedNodeIds([]);
-
-    //    setHighlightAnimationKey(
-    //    (previous) => previous + 1,
-    //    );
-
-        highlightFrameRef.current =
-        window.requestAnimationFrame(() => {
-            setHighlightedNodeIds([
-            createdNode.nodeId,
-            ]);
-
-            highlightTimerRef.current =
-            window.setTimeout(() => {
-                setHighlightedNodeIds([]);
-                highlightTimerRef.current = null;
-            }, 10_000);
-
-            highlightFrameRef.current = null;
-        });
+        applyFilesystemAnimationPlan(
+          createLessonAnimationPlan({ commandName: "touch", success: result.success, beforeNodes: nodes, afterNodes: result.nodes, currentDirectoryId, createdNodeId: createdNode.nodeId }),
+          { highlightNodes, removeNodes: () => undefined, expandNodes },
+        );
       }
 
       const children = result.nodes.filter(
@@ -171,24 +106,9 @@ export function TouchLessonPage() {
         (node) => node.name,
       );
 
-      output = [
-        result.message,
-        "",
-        "Visualized result:",
-        "student",
-        ...names.map((name, index) => {
-          const prefix =
-            index === names.length - 1
-              ? "└── "
-              : "├── ";
+      output = formatVisualizedChildren(result.message, "student", names);
 
-          return `${prefix}${name}`;
-        }),
-      ].join("\n");
-
-      if (
-        result.createdName === "hello.txt"
-      ) {
+      if (result.success && result.createdName) {
         setTaskComplete(true);
       }
     }
@@ -299,6 +219,7 @@ export function TouchLessonPage() {
             highlightedNodeIds={
               highlightedNodeIds
             }
+            expandNodeIds={expandNodeIds}
           //   highlightAnimationKey={
           //      highlightAnimationKey
           //  }
@@ -316,9 +237,7 @@ export function TouchLessonPage() {
         />
       }
       onReset={handleReset}
-      onNext={() =>
-        alert("Next lesson coming soon.")
-      }
+      onNext={() => navigate("/learn/pwd")}
     />
   );
 }

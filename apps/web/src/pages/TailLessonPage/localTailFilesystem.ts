@@ -1,4 +1,5 @@
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
+import { runLessonCommand } from "../../terminal/lessonCommandRuntime.js";
 
 export function buildInitialFilesystem(): {
   nodes: FilesystemNodeSummary[];
@@ -64,89 +65,10 @@ export function buildInitialFilesystem(): {
   };
 }
 
-const NOTES_CONTENT = [
-  "Linux is an operating system.",
-  "The terminal lets you interact with Linux using commands.",
-  "The head command shows the beginning of a file.",
-  "By default, head displays the first 10 lines.",
-  "You can use head when you only need the start of a file.",
-  "It is useful for quickly checking large files.",
-  "You can combine head with other commands later.",
-  "Linux commands are often small and focused.",
-  "Learning commands step by step makes the terminal easier.",
-  "Visualinux helps you practice Linux commands visually.",
-  "This is line eleven.",
-  "This is line twelve.",
-];
-
 export interface TailResult {
-  success: boolean;
-  message: string;
-  nodes: FilesystemNodeSummary[];
+  success: boolean; message: string; nodes: FilesystemNodeSummary[];
 }
 
-export function runTail(
-  rawInput: string,
-  nodes: FilesystemNodeSummary[],
- // _currentDirectoryId: string,
-): TailResult {
-  const input = rawInput.trim();
-
-  if (!input) {
-    return {
-      success: false,
-      message: "Please type a command.",
-      nodes,
-    };
-  }
-
-  if (!input.startsWith("tail")) {
-    return {
-      success: false,
-      message: "This lesson only teaches tail. Try: tail notes.txt",
-      nodes,
-    };
-  }
-
-  const tokens = input.split(/\s+/);
-
-  if (tokens[0] !== "tail") {
-    return {
-      success: false,
-      message: "This lesson only teaches tail. Try: tail notes.txt",
-      nodes,
-    };
-  }
-
-  if (tokens.length === 1) {
-    return {
-      success: false,
-      message: "tail: missing file operand.",
-      nodes,
-    };
-  }
-
-  if (tokens.length > 2) {
-    return {
-      success: false,
-      message: "This lesson supports one file at a time.",
-      nodes,
-    };
-  }
-
-  const filename = tokens[1];
-
-  if (filename !== "notes.txt") {
-    return {
-      success: false,
-      message: `tail: ${filename}: No such file.`,
-      nodes,
-    };
-  }
-
-  return {
-    success: true,
-    message: NOTES_CONTENT.slice(-10).join("\n"),
-    nodes,
-  };
+export function runTail(rawInput: string, nodes: FilesystemNodeSummary[]): TailResult {
+  return runLessonCommand({ command: "tail", rawInput, nodes }) as TailResult;
 }

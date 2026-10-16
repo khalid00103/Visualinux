@@ -2,6 +2,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useNavigate } from "react-router-dom";
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
 import { TreeNode } from "../../components/filesystem/TreeNode.js";
 import {
@@ -15,8 +16,11 @@ import {
   buildInitialFilesystem,
   runCd,
 } from "./localCdFilesystem.js";
+import { createLessonAnimationPlan, formatCurrentDirectory } from "../../terminal/commandPresentation.js";
+import { applyFilesystemAnimationPlan, useFilesystemAnimationController } from "../../terminal/useFilesystemAnimationController.js";
 
 export function CdLessonPage() {
+  const navigate = useNavigate();
   const initial = buildInitialFilesystem();
 
   const [nodes] = useState<
@@ -34,6 +38,8 @@ export function CdLessonPage() {
 
   const [taskComplete, setTaskComplete] =
     useState(false);
+
+  const { expandNodeIds, expandNodes, resetAnimations } = useFilesystemAnimationController();
 
   const inputRef =
     useRef<HTMLInputElement>(null);
@@ -72,6 +78,7 @@ export function CdLessonPage() {
     getCurrentPath(currentDirectoryId);
 
   function handleReset() {
+    resetAnimations();
     setCurrentDirectoryId(initial.studentId);
     setHistory([]);
     setTaskComplete(false);
@@ -98,8 +105,17 @@ export function CdLessonPage() {
     );
 
     if (result.success) {
-      setCurrentDirectoryId(
-        result.currentDirectoryId,
+      setCurrentDirectoryId(result.currentDirectoryId);
+      applyFilesystemAnimationPlan(
+        createLessonAnimationPlan({
+          commandName: "cd",
+          success: true,
+          beforeNodes: nodes,
+          afterNodes: nodes,
+          currentDirectoryId,
+          pathNodeIds: result.pathNodeIds,
+        }),
+        { highlightNodes: () => undefined, removeNodes: () => undefined, expandNodes },
       );
     }
 
@@ -110,16 +126,12 @@ export function CdLessonPage() {
         result.currentDirectoryId,
       );
 
-      output = [
-        result.message,
-        "",
-        "Current directory:",
-        newPath,
-      ].join("\n");
+      output = formatCurrentDirectory(result.message, newPath);
 
       if (
         newPath ===
-        "/home/student/documents"
+        "/home/student/documents" || newPath ===
+        "/home/student/downloads"
       ) {
         setTaskComplete(true);
       }
@@ -219,6 +231,7 @@ export function CdLessonPage() {
             currentDirectoryId={
               currentDirectoryId
             }
+            expandNodeIds={expandNodeIds}
           />
         ) : null
       }
@@ -233,9 +246,7 @@ export function CdLessonPage() {
         />
       }
       onReset={handleReset}
-      onNext={() =>
-        alert("Next lesson coming soon.")
-      }
+      onNext={() => navigate("/learn/cat")}
     />
   );
 }

@@ -1,4 +1,5 @@
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
+import { runLessonCommand } from "../../terminal/lessonCommandRuntime.js";
 
 let counter = 0;
 
@@ -100,58 +101,9 @@ export function buildInitialFilesystem(): LsFilesystem {
 }
 
 export interface LsResult {
-  success: boolean;
-  message: string;
-  nodes: FilesystemNodeSummary[];
-  listedNames?: string[];
+  success: boolean; message: string; nodes: FilesystemNodeSummary[]; listedNames?: string[];
 }
 
-export function runLs(
-  rawInput: string,
-  nodes: FilesystemNodeSummary[],
-  currentDirectoryId: string,
-): LsResult {
-  const trimmed = rawInput.trim();
-  const tokens = trimmed.split(/\s+/).filter(Boolean);
-
-  if (tokens.length === 0) {
-    return {
-      success: false,
-      message: "Please type a command.",
-      nodes,
-    };
-  }
-
-  const command = tokens[0];
-
-  if (command !== "ls") {
-    return {
-      success: false,
-      message: "This lesson only teaches the ls command. Try: ls",
-      nodes,
-    };
-  }
-
-  const args = tokens.slice(1);
-
-  if (args.length > 0) {
-    return {
-      success: false,
-      message: "ls: options and paths are not supported in this lesson. Try: ls",
-      nodes,
-    };
-  }
-
-  const children = nodes
-    .filter((node) => node.parentId === currentDirectoryId)
-    .sort((a, b) => a.name.localeCompare(b.name));
-
-  const listedNames = children.map((node) => node.name);
-
-  return {
-    success: true,
-    message: listedNames.join("  "),
-    nodes,
-    listedNames,
-  };
+export function runLs(rawInput: string, nodes: FilesystemNodeSummary[], currentDirectoryId: string): LsResult {
+  return runLessonCommand({ command: "ls", rawInput, nodes, currentDirectoryId }) as LsResult;
 }

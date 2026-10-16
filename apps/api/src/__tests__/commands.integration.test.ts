@@ -15,10 +15,10 @@ afterAll(async () => {
 });
 
 describe("Commands API (integration)", () => {
-  it("lists all 28 seeded commands", async () => {
+  it("lists all 31 seeded commands", async () => {
     const res = await app.inject({ method: "GET", url: "/api/v1/commands" });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toHaveLength(28);
+    expect(res.json()).toHaveLength(31);
   });
 
   it("filters by category", async () => {

@@ -8,7 +8,7 @@ export const chmod: CommandHandler = (ctx) => {
     return { success: false, outputText: "chmod: usage: chmod <mode> <path>", errorType: "invalid_arguments", operations: NO_OPS, animationEvents: NO_EVENTS };
   }
   const [mode, path] = ctx.args;
-  if (!/^[0-7]{3}$/.test(mode)) {
+  if (!/^[0-7]{3}$/.test(mode) && mode !== "+x" && mode !== "-x") {
     return { success: false, outputText: `chmod: invalid mode: '${mode}'`, errorType: "invalid_arguments", operations: NO_OPS, animationEvents: NO_EVENTS };
   }
 
@@ -17,7 +17,11 @@ export const chmod: CommandHandler = (ctx) => {
     return { success: false, outputText: `chmod: cannot access '${path}': No such file or directory`, errorType: "not_found", operations: NO_OPS, animationEvents: NO_EVENTS };
   }
 
-  const permissions = octalToSymbolic(mode);
+  const permissions = mode === "+x"
+    ? addExecutePermissions(resolved.node.permissions)
+    : mode === "-x"
+      ? removeExecutePermissions(resolved.node.permissions)
+      : octalToSymbolic(mode);
   return {
     success: true,
     outputText: "",
@@ -68,4 +72,19 @@ function octalToSymbolic(octal: string): string {
     "4": "r--", "5": "r-x", "6": "rw-", "7": "rwx",
   };
   return octal.split("").map((digit) => map[digit] ?? "---").join("");
+}
+
+
+function addExecutePermissions(current: string): string {
+  // Preserve the lesson's demonstrated transition: adding execute permission
+  // to a standard rw-r--r-- file produces rwxr-xr-x.
+  if (current === "rw-r--r--") return "rwxr-xr-x";
+  return current.split("").map((char, index) => {
+    if ([2, 5, 8].includes(index) && char === "-") return "x";
+    return char;
+  }).join("");
+}
+
+function removeExecutePermissions(current: string): string {
+  return current.split("").map((char, index) => ([2, 5, 8].includes(index) && char === "x" ? "-" : char)).join("");
 }

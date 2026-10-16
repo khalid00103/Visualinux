@@ -66,7 +66,12 @@ export class FilesystemTree {
     const segments: string[] = [];
     let current = this.byId.get(nodeId);
     while (current) {
-      segments.unshift(current.name);
+      // Some demo lesson trees use `/` as the root node's display name, while
+      // persisted Practice trees use `home`. A slash is already supplied by
+      // the leading separator and must never become a path segment itself.
+      if (!(current.parentId === null && current.name === "/")) {
+        segments.unshift(current.name);
+      }
       current = current.parentId ? this.byId.get(current.parentId) : undefined;
     }
     return "/" + segments.join("/");

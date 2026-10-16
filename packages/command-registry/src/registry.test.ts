@@ -14,6 +14,7 @@ const EXPECTED_TIER_1 = [
 
 const EXPECTED_TIER_2 = [
   "cat", "head", "tail", "grep", "sort", "uniq", "wc", "diff", "echo", "nano",
+  "clear", "man", "whoami",
 ];
 
 describe("command registry — MVP scope integrity", () => {

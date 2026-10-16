@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
 import { TreeNode } from "../../components/filesystem/TreeNode.js";
 import {
@@ -12,8 +13,20 @@ import {
   buildInitialFilesystem,
   runMkdir,
 } from "./localMkdirFilesystem.js";
+import { useFilesystemAnimationController } from "../../terminal/useFilesystemAnimationController.js";
+import { createLessonAnimationPlan, formatVisualizedChildren } from "../../terminal/commandPresentation.js";
+import { applyFilesystemAnimationPlan } from "../../terminal/useFilesystemAnimationController.js";
+
+
+import { completeLesson } from "../../api/learning.js";
+import { useAuthStore } from "../../store/authStore.js";
+
 
 export function MkdirLessonPage() {
+  const navigate = useNavigate();
+  
+  const accessToken = useAuthStore((state) => state.accessToken);
+
   const initial = buildInitialFilesystem();
 
   const [nodes, setNodes] = useState<FilesystemNodeSummary[]>(initial.nodes);
@@ -22,44 +35,26 @@ export function MkdirLessonPage() {
   const [draft, setDraft] = useState("");
   const [taskComplete, setTaskComplete] = useState(false);
 
-  const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
+  
+  const [completionSaveStatus, setCompletionSaveStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
 
-  const highlightTimerRef = useRef<number | null>(null);
-  const highlightFrameRef = useRef<number | null>(null);
+
+  const { highlightedNodeIds, expandNodeIds, highlightNodes, expandNodes, resetAnimations } = useFilesystemAnimationController();
 
   const inputRef = useRef<HTMLInputElement>(null);
 
   const root = nodes.find((node) => node.parentId === null);
 
-  useEffect(() => {
-    return () => {
-      if (highlightTimerRef.current !== null) {
-        window.clearTimeout(highlightTimerRef.current);
-      }
-
-      if (highlightFrameRef.current !== null) {
-        window.cancelAnimationFrame(highlightFrameRef.current);
-      }
-    };
-  }, []);
-
   function handleReset() {
     const fresh = buildInitialFilesystem();
 
-    if (highlightTimerRef.current !== null) {
-      window.clearTimeout(highlightTimerRef.current);
-      highlightTimerRef.current = null;
-    }
-
-    if (highlightFrameRef.current !== null) {
-      window.cancelAnimationFrame(highlightFrameRef.current);
-      highlightFrameRef.current = null;
-    }
-
+    resetAnimations();
     setNodes(fresh.nodes);
     setHistory([]);
     setTaskComplete(false);
-    setHighlightedNodeIds([]);
+    setCompletionSaveStatus("idle");
     setDraft("");
 
     inputRef.current?.focus();
@@ -91,20 +86,7 @@ export function MkdirLessonPage() {
 
       const names = children.map((node) => node.name);
 
-      output = [
-        result.message,
-        "",
-        "Visualized result:",
-        "student",
-        ...names.map((name, index) => {
-          const prefix =
-            index === names.length - 1
-              ? "└── "
-              : "├── ";
-
-          return `${prefix}${name}`;
-        }),
-      ].join("\n");
+      output = formatVisualizedChildren(result.message, "student", names);
     }
 
     setHistory((previous) => [
@@ -126,30 +108,32 @@ export function MkdirLessonPage() {
       );
 
       if (createdNode) {
-        if (highlightTimerRef.current !== null) {
-          window.clearTimeout(highlightTimerRef.current);
-        }
-
-        if (highlightFrameRef.current !== null) {
-          window.cancelAnimationFrame(highlightFrameRef.current);
-        }
-
-        setHighlightedNodeIds([]);
-
-        highlightFrameRef.current = window.requestAnimationFrame(() => {
-          setHighlightedNodeIds([createdNode.nodeId]);
-
-          highlightTimerRef.current = window.setTimeout(() => {
-            setHighlightedNodeIds([]);
-            highlightTimerRef.current = null;
-          }, 10_000);
-
-          highlightFrameRef.current = null;
-        });
+        applyFilesystemAnimationPlan(
+          createLessonAnimationPlan({ commandName: "mkdir", success: result.success, beforeNodes: nodes, afterNodes: result.nodes, currentDirectoryId, createdNodeId: createdNode.nodeId }),
+          { highlightNodes, removeNodes: () => undefined, expandNodes },
+        );
       }
 
-      if (result.createdName === "my-project") {
+      if (result.success && result.createdName === "my-project") {
         setTaskComplete(true);
+
+        if (!accessToken) {
+          setCompletionSaveStatus("error");
+        } else {
+          setCompletionSaveStatus("saving");
+
+          void completeLesson("mkdir", accessToken)
+            .then(() => {
+              setCompletionSaveStatus("saved");
+            })
+            .catch((error: unknown) => {
+              console.error(
+                "Failed to save mkdir lesson completion:",
+                error,
+              );
+              setCompletionSaveStatus("error");
+            });
+        }
       }
     }
   }
@@ -218,18 +202,37 @@ export function MkdirLessonPage() {
         </>
       }
       taskComplete={taskComplete}
+      
       completion={
-        <p
-          style={{
-            margin: "0 0 12px",
-            color: "var(--role-success)",
-            fontSize: "14px",
-          }}
-        >
-          ✓ Great job! You created the directory:{" "}
-          <strong>my-project</strong>
-        </p>
+        <>
+          <p
+            style={{
+              margin: "0 0 12px",
+              color: "var(--role-success)",
+              fontSize: "14px",
+            }}
+          >
+            ✓ Great job! You created the directory:{" "}
+            <strong>my-project</strong>
+          </p>
+
+          {completionSaveStatus === "saving" && (
+            <p role="status">Saving your progress...</p>
+          )}
+
+          {completionSaveStatus === "saved" && (
+            <p role="status">Your lesson progress has been saved.</p>
+          )}
+
+          {completionSaveStatus === "error" && (
+            <p role="alert">
+              Your lesson is complete, but we couldn't save your progress.
+              Please check your login and try again.
+            </p>
+          )}
+        </>
       }
+
       filesystem={
         root ? (
           <TreeNode
@@ -237,6 +240,7 @@ export function MkdirLessonPage() {
             allNodes={nodes}
             currentDirectoryId={currentDirectoryId}
             highlightedNodeIds={highlightedNodeIds}
+            expandNodeIds={expandNodeIds}
           />
         ) : null
       }
@@ -251,7 +255,7 @@ export function MkdirLessonPage() {
         />
       }
       onReset={handleReset}
-      onNext={() => alert("Next lesson coming soon.")}
+      onNext={() => navigate("/learn/ls")}
     />
   );
 }

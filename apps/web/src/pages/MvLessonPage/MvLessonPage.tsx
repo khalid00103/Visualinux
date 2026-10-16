@@ -1,9 +1,6 @@
 
-import {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
 import { TreeNode } from "../../components/filesystem/TreeNode.js";
 import { LessonShell } from "../../components/lessons/LessonShell.js";
@@ -15,8 +12,12 @@ import {
   buildInitialFilesystem,
   runMv,
 } from "./localMvFilesystem.js";
+import { useFilesystemAnimationController } from "../../terminal/useFilesystemAnimationController.js";
+import { createLessonAnimationPlan, formatMoveExplanation } from "../../terminal/commandPresentation.js";
+import { applyFilesystemAnimationPlan } from "../../terminal/useFilesystemAnimationController.js";
 
 export function MvLessonPage() {
+  const navigate = useNavigate();
   const initial = buildInitialFilesystem();
 
   const [nodes, setNodes] = useState<FilesystemNodeSummary[]>(
@@ -27,42 +28,13 @@ export function MvLessonPage() {
   const [history, setHistory] = useState<LessonHistoryEntry[]>([]);
   const [draft, setDraft] = useState("");
   const [taskComplete, setTaskComplete] = useState(false);
-  const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
-
-  const [expandNodeIds, setExpandNodeIds] = useState<string[]>([]);
-
-  const highlightTimerRef = useRef<number | null>(null);
-  const highlightFrameRef = useRef<number | null>(null);
+  const { highlightedNodeIds, expandNodeIds, highlightNodes, expandNodes, resetAnimations } = useFilesystemAnimationController();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const root = nodes.find((node) => node.parentId === null);
 
-  useEffect(() => {
-    return () => {
-      if (highlightTimerRef.current !== null) {
-        window.clearTimeout(highlightTimerRef.current);
-      }
-
-      if (highlightFrameRef.current !== null) {
-        window.cancelAnimationFrame(highlightFrameRef.current);
-      }
-    };
-  }, []);
-
-  function clearHighlightTimers() {
-    if (highlightTimerRef.current !== null) {
-      window.clearTimeout(highlightTimerRef.current);
-      highlightTimerRef.current = null;
-    }
-
-    if (highlightFrameRef.current !== null) {
-      window.cancelAnimationFrame(highlightFrameRef.current);
-      highlightFrameRef.current = null;
-    }
-  }
-
   function handleReset() {
-    clearHighlightTimers();
+    resetAnimations();
 
     const fresh = buildInitialFilesystem();
 
@@ -70,8 +42,6 @@ export function MvLessonPage() {
     setHistory([]);
     setDraft("");
     setTaskComplete(false);
-    setHighlightedNodeIds([]);
-    setExpandNodeIds([]);
 
     inputRef.current?.focus();
   }
@@ -94,49 +64,17 @@ export function MvLessonPage() {
       result.affectedName &&
       result.action
     ) {
-      clearHighlightTimers();
-
       setNodes(result.nodes);
-      setHighlightedNodeIds([]);
 
-        const affectedNode = result.nodes.find(
-            (node) => node.nodeId === result.affectedNodeId,
-        );
-
-        const parentIdsToExpand = [
-            currentDirectoryId,
-            affectedNode?.parentId,
-        ].filter((id): id is string => id !== null && id !== undefined);
-
-        setExpandNodeIds([...new Set(parentIdsToExpand)]);
-
-      highlightFrameRef.current = window.requestAnimationFrame(() => {
-        setHighlightedNodeIds([result.affectedNodeId!]);
-
-        highlightTimerRef.current = window.setTimeout(() => {
-          setHighlightedNodeIds([]);
-          highlightTimerRef.current = null;
-        }, 10_000);
-
-        highlightFrameRef.current = null;
-      });
+      applyFilesystemAnimationPlan(
+        createLessonAnimationPlan({ commandName: "mv", success: result.success, beforeNodes: nodes, afterNodes: result.nodes, currentDirectoryId, affectedNodeId: result.affectedNodeId }),
+        { highlightNodes, removeNodes: () => undefined, expandNodes },
+      );
 
       if (result.action === "rename") {
-        output = [
-          result.message,
-          "",
-          "Visualized result:",
-          `New name: ${result.affectedName}`,
-          "The file keeps its identity and contents.",
-        ].join("\n");
+        output = formatMoveExplanation(result.message, "rename", result.affectedName);
       } else {
-        output = [
-          result.message,
-          "",
-          "Visualized result:",
-          `Moved item: ${result.affectedName}`,
-          "The item now belongs to the destination directory.",
-        ].join("\n");
+        output = formatMoveExplanation(result.message, "move", result.affectedName);
       }
 
       // The lesson task is to move notes.txt into documents/.
@@ -258,7 +196,7 @@ export function MvLessonPage() {
         />
       }
       onReset={handleReset}
-      onNext={() => alert("Next lesson coming soon.")}
+      onNext={() => navigate("/learn/rm")}
     />
   );
 }

@@ -2,6 +2,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useNavigate } from "react-router-dom";
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
 import { TreeNode } from "../../components/filesystem/TreeNode.js";
 import { LessonShell } from "../../components/lessons/LessonShell.js";
@@ -15,6 +16,7 @@ import {
 } from "./localWhoamiFilesystem.js";
 
 export function WhoamiLessonPage() {
+  const navigate = useNavigate();
   const initial = buildInitialFilesystem();
 
   const [nodes, setNodes] = useState<FilesystemNodeSummary[]>(
@@ -186,7 +188,7 @@ export function WhoamiLessonPage() {
         />
       }
       onReset={handleReset}
-      onNext={() => alert("Next lesson coming soon.")}
+      onNext={() => navigate("/learn/clear")}
     />
   );
 }

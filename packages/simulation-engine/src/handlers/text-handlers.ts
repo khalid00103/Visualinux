@@ -119,10 +119,22 @@ export const wc: CommandHandler = (ctx) => {
   const words = text.split(/\s+/).filter(Boolean).length;
   const chars = text.length;
 
+  const filename = ctx.stdin === undefined ? ctx.args[0] : undefined;
   if (ctx.flags.includes("-l")) {
-    return { success: true, outputText: String(lines), operations: NO_OPS, animationEvents: NO_EVENTS };
+    return { success: true, outputText: [String(lines), filename].filter(Boolean).join(" "), operations: NO_OPS, animationEvents: NO_EVENTS };
   }
-  return { success: true, outputText: `${lines}  ${words}  ${chars}`, operations: NO_OPS, animationEvents: NO_EVENTS };
+  if (ctx.flags.includes("-w")) {
+    return { success: true, outputText: [String(words), filename].filter(Boolean).join(" "), operations: NO_OPS, animationEvents: NO_EVENTS };
+  }
+  if (ctx.flags.includes("-c")) {
+    return { success: true, outputText: [String(chars), filename].filter(Boolean).join(" "), operations: NO_OPS, animationEvents: NO_EVENTS };
+  }
+  return {
+    success: true,
+    outputText: [String(lines), String(words), String(chars), filename].filter(Boolean).join(" "),
+    operations: NO_OPS,
+    animationEvents: NO_EVENTS,
+  };
 };
 
 export const diff: CommandHandler = (ctx) => {

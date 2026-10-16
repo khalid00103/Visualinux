@@ -3,6 +3,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useNavigate } from "react-router-dom";
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
 import { TreeNode } from "../../components/filesystem/TreeNode.js";
 import { LessonShell } from "../../components/lessons/LessonShell.js";
@@ -16,6 +17,7 @@ import {
 } from "./localCatFilesystem.js";
 
 export function CatLessonPage() {
+  const navigate = useNavigate();
   const initial = buildInitialFilesystem();
 
   const [nodes] = useState<FilesystemNodeSummary[]>(
@@ -153,7 +155,7 @@ export function CatLessonPage() {
         />
       }
       onReset={handleReset}
-      onNext={() => alert("Next lesson coming soon.")}
+      onNext={() => navigate("/learn/echo")}
     />
   );
 }

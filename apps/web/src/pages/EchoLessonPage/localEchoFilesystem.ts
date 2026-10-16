@@ -1,4 +1,5 @@
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
+import { runLessonCommand } from "../../terminal/lessonCommandRuntime.js";
 
 export function buildInitialFilesystem(): {
   nodes: FilesystemNodeSummary[];
@@ -65,88 +66,9 @@ export function buildInitialFilesystem(): {
 }
 
 export interface EchoResult {
-  success: boolean;
-  message: string;
-  nodes: FilesystemNodeSummary[];
+  success: boolean; message: string; nodes: FilesystemNodeSummary[];
 }
 
-export function runEcho(
-  rawInput: string,
-  nodes: FilesystemNodeSummary[],
-//  _currentDirectoryId: string,
-): EchoResult {
-  const input = rawInput.trim();
-
-  if (!input) {
-    return {
-      success: false,
-      message: "Please type a command.",
-      nodes,
-    };
-  }
-
-  if (!input.startsWith("echo")) {
-    return {
-      success: false,
-      message: "This lesson only teaches echo. Try: echo Hello Linux",
-      nodes,
-    };
-  }
-
-  const tokens = input.split(/\s+/);
-
-  if (tokens[0] !== "echo") {
-    return {
-      success: false,
-      message: "This lesson only teaches echo. Try: echo Hello Linux",
-      nodes,
-    };
-  }
-
-  const text = input.slice(4).trim();
-
-  if (!text) {
-    return {
-      success: true,
-      message: "",
-      nodes,
-    };
-  }
-
-  const startsWithDoubleQuote = text.startsWith('"');
-  const endsWithDoubleQuote = text.endsWith('"');
-
-  const startsWithSingleQuote = text.startsWith("'");
-  const endsWithSingleQuote = text.endsWith("'");
-
-  const hasMatchingDoubleQuotes =
-    startsWithDoubleQuote && endsWithDoubleQuote;
-
-  const hasMatchingSingleQuotes =
-    startsWithSingleQuote && endsWithSingleQuote;
-
-  if (
-    (startsWithDoubleQuote && !endsWithDoubleQuote) ||
-    (endsWithDoubleQuote && !startsWithDoubleQuote) ||
-    (startsWithSingleQuote && !endsWithSingleQuote) ||
-    (endsWithSingleQuote && !startsWithSingleQuote)
-  ) {
-    return {
-      success: false,
-      message: "echo: unmatched quote.",
-      nodes,
-    };
-  }
-
-  let output = text;
-
-  if (hasMatchingDoubleQuotes || hasMatchingSingleQuotes) {
-    output = text.slice(1, -1);
-  }
-
-  return {
-    success: true,
-    message: output,
-    nodes,
-  };
+export function runEcho(rawInput: string, nodes: FilesystemNodeSummary[]): EchoResult {
+  return runLessonCommand({ command: "echo", rawInput, nodes }) as EchoResult;
 }

@@ -2,6 +2,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useNavigate } from "react-router-dom";
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
 import { TreeNode } from "../../components/filesystem/TreeNode.js";
 import { LessonShell } from "../../components/lessons/LessonShell.js";
@@ -15,6 +16,7 @@ import {
 } from "./localEchoFilesystem.js";
 
 export function EchoLessonPage() {
+  const navigate = useNavigate();
   const initial = buildInitialFilesystem();
 
   const [nodes] = useState<FilesystemNodeSummary[]>(
@@ -53,10 +55,7 @@ export function EchoLessonPage() {
     //  currentDirectoryId,
     );
 
-    if (
-      result.success &&
-      input === 'echo "Hello Linux"'
-    ) {
+    if (result.success && /^echo\s+.+/.test(input)) {
       setTaskComplete(true);
     }
 
@@ -163,7 +162,7 @@ export function EchoLessonPage() {
         />
       }
       onReset={handleReset}
-      onNext={() => alert("Next lesson coming soon.")}
+      onNext={() => navigate("/learn/head")}
     />
   );
 }

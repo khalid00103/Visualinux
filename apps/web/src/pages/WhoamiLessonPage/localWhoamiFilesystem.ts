@@ -1,4 +1,5 @@
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
+import { runLessonCommand } from "../../terminal/lessonCommandRuntime.js";
 
 export function buildInitialFilesystem(): {
   nodes: FilesystemNodeSummary[];
@@ -65,36 +66,9 @@ export function buildInitialFilesystem(): {
 }
 
 export interface WhoamiResult {
-  success: boolean;
-  message: string;
-  nodes: FilesystemNodeSummary[];
+  success: boolean; message: string; nodes: FilesystemNodeSummary[];
 }
 
-export function runWhoami(
-  rawInput: string,
-  nodes: FilesystemNodeSummary[],
-): WhoamiResult {
-  const input = rawInput.trim();
-
-  if (!input) {
-    return {
-      success: false,
-      message: "Please type a command.",
-      nodes,
-    };
-  }
-
-  if (input !== "whoami") {
-    return {
-      success: false,
-      message: "This lesson only teaches whoami. Try: whoami",
-      nodes,
-    };
-  }
-
-  return {
-    success: true,
-    message: "student",
-    nodes,
-  };
+export function runWhoami(rawInput: string, nodes: FilesystemNodeSummary[]): WhoamiResult {
+  return runLessonCommand({ command: "whoami", rawInput, nodes }) as WhoamiResult;
 }

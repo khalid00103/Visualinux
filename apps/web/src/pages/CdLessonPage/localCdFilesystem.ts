@@ -1,4 +1,5 @@
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
+import { runLessonCommand } from "../../terminal/lessonCommandRuntime.js";
 
 let counter = 0;
 
@@ -16,6 +17,7 @@ function nextId(): string {
  *         ├── documents
  *         └── downloads
  */
+
 export function buildInitialFilesystem(): {
   nodes: FilesystemNodeSummary[];
   rootId: string;
@@ -93,117 +95,9 @@ export function buildInitialFilesystem(): {
 }
 
 export interface CdResult {
-  success: boolean;
-  message: string;
-  currentDirectoryId: string;
+  success: boolean; message: string; currentDirectoryId: string; pathNodeIds: string[];
 }
 
-export function runCd(
-  rawInput: string,
-  nodes: FilesystemNodeSummary[],
-  currentDirectoryId: string,
-): CdResult {
-  const trimmed = rawInput.trim();
-  const tokens = trimmed.split(/\s+/).filter(Boolean);
-
-  if (tokens.length === 0) {
-    return {
-      success: false,
-      message: "Please type a command.",
-      currentDirectoryId,
-    };
-  }
-
-  const command = tokens[0];
-
-  if (command !== "cd") {
-    return {
-      success: false,
-      message:
-        "This lesson only teaches the cd command. Try: cd documents",
-      currentDirectoryId,
-    };
-  }
-
-  const args = tokens.slice(1);
-
-  if (args.length === 0) {
-    return {
-      success: false,
-      message: "cd: missing directory operand. Usage: cd <directory>",
-      currentDirectoryId,
-    };
-  }
-
-  if (args.length > 1) {
-    return {
-      success: false,
-      message: "cd: too many arguments. Usage: cd <directory>",
-      currentDirectoryId,
-    };
-  }
-
-  const targetName = args[0];
-
-  if (targetName === ".") {
-    return {
-      success: true,
-      message: "Already in the current directory.",
-      currentDirectoryId,
-    };
-  }
-
-  if (targetName === "..") {
-    const currentNode = nodes.find(
-      (node) => node.nodeId === currentDirectoryId,
-    );
-
-    if (!currentNode || currentNode.parentId === null) {
-      return {
-        success: false,
-        message: "cd: already at the root directory.",
-        currentDirectoryId,
-      };
-    }
-
-    const parentNode = nodes.find(
-        (node) => node.nodeId === currentNode.parentId,
-    );
-
-    return {
-        success: true,
-        message: parentNode
-            ? `Changed directory to '${parentNode.name}'.`
-            : "Changed directory.",
-        currentDirectoryId: currentNode.parentId,
-    };
-  }
-
-  const targetNode = nodes.find(
-    (node) =>
-      node.parentId === currentDirectoryId &&
-      node.name === targetName,
-  );
-
-  if (!targetNode) {
-    return {
-      success: false,
-      message: `cd: ${targetName}: No such file or directory`,
-      currentDirectoryId,
-    };
-  }
-
-  if (targetNode.nodeType !== "directory") {
-    return {
-      success: false,
-      message: `cd: ${targetName}: Not a directory`,
-      currentDirectoryId,
-    };
-  }
-
-  return {
-    success: true,
-    message: `Changed directory to '${targetName}'.`,
-    currentDirectoryId: targetNode.nodeId,
-  };
+export function runCd(rawInput: string, nodes: FilesystemNodeSummary[], currentDirectoryId: string): CdResult {
+  return runLessonCommand({ command: "cd", rawInput, nodes, currentDirectoryId }) as CdResult;
 }

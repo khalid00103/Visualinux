@@ -1,8 +1,5 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
 import { TreeNode } from "../../components/filesystem/TreeNode.js";
 import { LessonShell } from "../../components/lessons/LessonShell.js";
@@ -14,8 +11,12 @@ import {
   buildInitialFilesystem,
   runPwd,
 } from "./localPwdFilesystem.js";
+import { useFilesystemAnimationController } from "../../terminal/useFilesystemAnimationController.js";
+import { createLessonAnimationPlan, formatCurrentPath } from "../../terminal/commandPresentation.js";
+import { applyFilesystemAnimationPlan } from "../../terminal/useFilesystemAnimationController.js";
 
 export function PwdLessonPage() {
+  const navigate = useNavigate();
   const initial = buildInitialFilesystem();
 
   const [nodes] = useState<FilesystemNodeSummary[]>(
@@ -35,37 +36,9 @@ export function PwdLessonPage() {
   const [taskComplete, setTaskComplete] =
     useState(false);
 
-  const [highlightedNodeIds, setHighlightedNodeIds] =
-    useState<string[]>([]);
-
-  const highlightTimerRef =
-    useRef<number | null>(null);
-
-  const highlightFrameRef =
-    useRef<number | null>(null);
-
-  const inputRef =
-    useRef<HTMLInputElement>(null);
-
-  const root = nodes.find(
-    (node) => node.parentId === null,
-  );
-
-  useEffect(() => {
-    return () => {
-      if (highlightTimerRef.current !== null) {
-        window.clearTimeout(
-          highlightTimerRef.current,
-        );
-      }
-
-      if (highlightFrameRef.current !== null) {
-        window.cancelAnimationFrame(
-          highlightFrameRef.current,
-        );
-      }
-    };
-  }, []);
+  const { highlightedNodeIds, expandNodeIds, highlightNodes, expandNodes, resetAnimations } = useFilesystemAnimationController();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const root = nodes.find((node) => node.parentId === null);
 
   function getCurrentPath(
     directoryId: string,
@@ -97,25 +70,9 @@ export function PwdLessonPage() {
     getCurrentPath(currentDirectoryId);
 
   function handleReset() {
-    if (highlightTimerRef.current !== null) {
-      window.clearTimeout(
-        highlightTimerRef.current,
-      );
-
-      highlightTimerRef.current = null;
-    }
-
-    if (highlightFrameRef.current !== null) {
-      window.cancelAnimationFrame(
-        highlightFrameRef.current,
-      );
-
-      highlightFrameRef.current = null;
-    }
-
+    resetAnimations();
     setHistory([]);
     setTaskComplete(false);
-    setHighlightedNodeIds([]);
     setDraft("");
 
     inputRef.current?.focus();
@@ -141,42 +98,12 @@ export function PwdLessonPage() {
     let output = result.message;
 
     if (result.success) {
-      if (highlightTimerRef.current !== null) {
-        window.clearTimeout(
-          highlightTimerRef.current,
-        );
-      }
+      applyFilesystemAnimationPlan(
+        createLessonAnimationPlan({ commandName: "pwd", success: result.success, beforeNodes: nodes, afterNodes: nodes, currentDirectoryId, pathNodeIds: result.pathNodeIds }),
+        { highlightNodes, removeNodes: () => undefined, expandNodes },
+      );
 
-      if (highlightFrameRef.current !== null) {
-        window.cancelAnimationFrame(
-          highlightFrameRef.current,
-        );
-      }
-
-      setHighlightedNodeIds([]);
-
-      highlightFrameRef.current =
-        window.requestAnimationFrame(() => {
-          setHighlightedNodeIds(
-            result.pathNodeIds,
-          );
-
-          highlightTimerRef.current =
-            window.setTimeout(() => {
-              setHighlightedNodeIds([]);
-
-              highlightTimerRef.current = null;
-            }, 10_000);
-
-          highlightFrameRef.current = null;
-        });
-
-      output = [
-        result.message,
-        "",
-        "Visualized path:",
-        result.currentPath,
-      ].join("\n");
+      output = formatCurrentPath(result.message, result.currentPath);
 
       if (
         result.currentPath ===
@@ -284,6 +211,7 @@ export function PwdLessonPage() {
             highlightedNodeIds={
               highlightedNodeIds
             }
+            expandNodeIds={expandNodeIds}
           />
         ) : null
       }
@@ -298,9 +226,7 @@ export function PwdLessonPage() {
         />
       }
       onReset={handleReset}
-      onNext={() =>
-        alert("Next lesson coming soon.")
-      }
+      onNext={() => navigate("/learn/cd")}
     />
   );
 }

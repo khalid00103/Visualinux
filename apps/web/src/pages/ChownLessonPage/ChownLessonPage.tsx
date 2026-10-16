@@ -1,7 +1,5 @@
-import {
-  useRef,
-  useState,
-} from "react";
+import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
 import { TreeNode } from "../../components/filesystem/TreeNode.js";
 import { LessonShell } from "../../components/lessons/LessonShell.js";
@@ -13,8 +11,12 @@ import {
   buildInitialFilesystem,
   runChown,
 } from "./localChownFilesystem.js";
+import { useFilesystemAnimationController } from "../../terminal/useFilesystemAnimationController.js";
+import { createLessonAnimationPlan } from "../../terminal/commandPresentation.js";
+import { applyFilesystemAnimationPlan } from "../../terminal/useFilesystemAnimationController.js";
 
 export function ChownLessonPage() {
+  const navigate = useNavigate();
   const initial = buildInitialFilesystem();
 
   const [nodes, setNodes] = useState<FilesystemNodeSummary[]>(
@@ -25,9 +27,7 @@ export function ChownLessonPage() {
   const [history, setHistory] = useState<LessonHistoryEntry[]>([]);
   const [draft, setDraft] = useState("");
   const [taskComplete, setTaskComplete] = useState(false);
-  const [highlightedNodeIds, setHighlightedNodeIds] = useState<
-    string[]
-  >([]);
+  const { highlightedNodeIds, expandNodeIds, highlightNodes, expandNodes, resetAnimations } = useFilesystemAnimationController();
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -40,7 +40,7 @@ export function ChownLessonPage() {
     setHistory([]);
     setDraft("");
     setTaskComplete(false);
-    setHighlightedNodeIds([]);
+    resetAnimations();
 
     inputRef.current?.focus();
   }
@@ -63,11 +63,10 @@ export function ChownLessonPage() {
       setNodes(result.nodes);
 
       if (result.affectedNodeId) {
-        setHighlightedNodeIds([result.affectedNodeId]);
-
-        window.setTimeout(() => {
-          setHighlightedNodeIds([]);
-        }, 10000);
+        applyFilesystemAnimationPlan(
+          createLessonAnimationPlan({ commandName: "chown", success: result.success, beforeNodes: nodes, afterNodes: result.nodes, currentDirectoryId, affectedNodeId: result.affectedNodeId }),
+          { highlightNodes, removeNodes: () => undefined, expandNodes },
+        );
       }
 
       if (input === "chown root notes.txt") {
@@ -192,6 +191,7 @@ export function ChownLessonPage() {
             allNodes={nodes}
             currentDirectoryId={currentDirectoryId}
             highlightedNodeIds={highlightedNodeIds}
+            expandNodeIds={expandNodeIds}
           />
         ) : null
       }
@@ -206,7 +206,7 @@ export function ChownLessonPage() {
         />
       }
       onReset={handleReset}
-      onNext={() => alert("Next lesson coming soon.")}
+      onNext={() => navigate("/learn/whoami")}
     />
   );
 }

@@ -24,7 +24,7 @@ This isn't a stylistic preference — it's what makes the "shared engine, two co
 
 | Tier | Owns | Example |
 |---|---|---|
-| **Global (Session Store)** | Cross-panel state that must stay synchronized the instant it changes — the optimistic filesystem mirror, command history for the active sandbox, current lesson step, animation event queue (Architecture §3) | `currentDirectoryId`, `filesystemMirror`, `pendingAnimationEvents` |
+| **Global (Session Store)** | Cross-panel state that must stay synchronized the instant it changes — the optimistic filesystem mirror, command history for the active sandbox, current lesson step, command-specific animation plan (Architecture §3) | `currentDirectoryId`, `filesystemMirror`, `pendingAnimationPlan` |
 | **Server Cache** | Data fetched from the REST API that benefits from caching/revalidation but isn't part of the synchronized-panel loop | Command registry, lesson content, badge catalog, leaderboard |
 | **Local** | State that only one component and its direct children care about | A modal's open/closed flag, a form field's draft value, a dropdown's open state |
 
@@ -135,7 +135,7 @@ This is the most important section — these components are shared, unmodified, 
 |---|---|---|---|
 | sandboxId | string | Yes | |
 | onLessonStepComplete | function | No | Only provided when mounted within a lesson context |
-**State:** Global (writes `filesystemMirror`, `pendingAnimationEvents`, `commandHistory`)
+**State:** Global (writes `filesystemMirror`, `pendingAnimationPlan`, `commandHistory`)
 
 ### `FilesystemPanel`
 **Type:** Container

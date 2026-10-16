@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
 import { TreeNode } from "../../components/filesystem/TreeNode.js";
 import { LessonShell } from "../../components/lessons/LessonShell.js";
@@ -10,8 +11,13 @@ import {
   buildInitialFilesystem,
   runLs,
 } from "./localLsFilesystem.js";
+import { useFilesystemAnimationController } from "../../terminal/useFilesystemAnimationController.js";
+import { createLessonAnimationPlan, formatDirectoryListing } from "../../terminal/commandPresentation.js";
+import { applyFilesystemAnimationPlan } from "../../terminal/useFilesystemAnimationController.js";
 
 export function LsLessonPage() {
+
+  const navigate = useNavigate();
   const initial = buildInitialFilesystem();
 
   const [nodes, setNodes] = useState<FilesystemNodeSummary[]>(
@@ -22,43 +28,19 @@ export function LsLessonPage() {
   const [draft, setDraft] = useState("");
   const [taskComplete, setTaskComplete] = useState(false);
 
-  const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
-  const highlightTimerRef = useRef<number | null>(null);
-  const highlightFrameRef = useRef<number | null>(null);
+  const { highlightedNodeIds, expandNodeIds, highlightNodes, expandNodes, resetAnimations } = useFilesystemAnimationController();
 
   const inputRef = useRef<HTMLInputElement>(null);
 
   const root = nodes.find((node) => node.parentId === null);
 
-  useEffect(() => {
-    return () => {
-      if (highlightTimerRef.current !== null) {
-        window.clearTimeout(highlightTimerRef.current);
-      }
-
-      if (highlightFrameRef.current !== null) {
-        window.cancelAnimationFrame(highlightFrameRef.current);
-      }
-    };
-  }, []);
-
   function handleReset() {
     const fresh = buildInitialFilesystem();
 
-    if (highlightTimerRef.current !== null) {
-      window.clearTimeout(highlightTimerRef.current);
-      highlightTimerRef.current = null;
-    }
-
-    if (highlightFrameRef.current !== null) {
-      window.cancelAnimationFrame(highlightFrameRef.current);
-      highlightFrameRef.current = null;
-    }
-
+    resetAnimations();
     setNodes(fresh.nodes);
     setHistory([]);
     setTaskComplete(false);
-    setHighlightedNodeIds([]);
     setDraft("");
 
     inputRef.current?.focus();
@@ -84,51 +66,15 @@ export function LsLessonPage() {
     let output = result.message;
 
     if (result.success && result.listedNames) {
-      const childNodes = result.nodes.filter(
-        (node) => node.parentId === currentDirectoryId,
+      // Highlight every child, even though `ls` does not mutate the filesystem.
+      applyFilesystemAnimationPlan(
+        createLessonAnimationPlan({ commandName: "ls", success: result.success, beforeNodes: nodes, afterNodes: result.nodes, currentDirectoryId }),
+        { highlightNodes, removeNodes: () => undefined, expandNodes },
       );
-
-      const highlightedIds = childNodes.map(
-        (node) => node.nodeId,
-      );
-
-      if (highlightTimerRef.current !== null) {
-        window.clearTimeout(highlightTimerRef.current);
-      }
-
-      if (highlightFrameRef.current !== null) {
-        window.cancelAnimationFrame(highlightFrameRef.current);
-      }
-
-      /*
-      * Remove the current highlight first.
-      * The next animation frame adds it again, which forces the CSS
-      * animation to restart even if the learner presses `ls` repeatedly.
-      */
-      setHighlightedNodeIds([]);
-
-      highlightFrameRef.current = window.requestAnimationFrame(() => {
-        setHighlightedNodeIds(highlightedIds);
-
-        highlightTimerRef.current = window.setTimeout(() => {
-          setHighlightedNodeIds([]);
-          highlightTimerRef.current = null;
-        }, 10_000);
-
-        highlightFrameRef.current = null;
-      });
 
       const names = result.listedNames;
 
-      output = [
-        "student",
-        ...names.map((name, index) => {
-          const prefix =
-            index === names.length - 1 ? "└── " : "├── ";
-
-          return `${prefix}${name}`;
-        }),
-      ].join("\n");
+      output = formatDirectoryListing("student", names);
 
       setTaskComplete(true);
     }
@@ -223,6 +169,7 @@ export function LsLessonPage() {
             allNodes={nodes}
             currentDirectoryId={currentDirectoryId}
             highlightedNodeIds={highlightedNodeIds}
+            expandNodeIds={expandNodeIds}
           />
         ) : null
       }
@@ -237,7 +184,7 @@ export function LsLessonPage() {
         />
       }
       onReset={handleReset}
-      onNext={() => alert("Next lesson coming soon.")}
+      onNext={() => navigate("/learn/touch")}
     />
   );
 }

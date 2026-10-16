@@ -1,4 +1,5 @@
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
+import { runLessonCommand } from "../../terminal/lessonCommandRuntime.js";
 
 export function buildInitialFilesystem(): {
   nodes: FilesystemNodeSummary[];
@@ -65,106 +66,9 @@ export function buildInitialFilesystem(): {
 }
 
 export interface ChownResult {
-  success: boolean;
-  message: string;
-  nodes: FilesystemNodeSummary[];
-  affectedNodeId?: string;
+  success: boolean; message: string; nodes: FilesystemNodeSummary[]; affectedNodeId?: string;
 }
 
-export function runChown(
-  rawInput: string,
-  nodes: FilesystemNodeSummary[],
-): ChownResult {
-  const input = rawInput.trim();
-
-  if (!input) {
-    return {
-      success: false,
-      message: "Please type a command.",
-      nodes,
-    };
-  }
-
-  if (!input.startsWith("chown")) {
-    return {
-      success: false,
-      message:
-        "This lesson only teaches chown. Try: chown root notes.txt",
-      nodes,
-    };
-  }
-
-  const tokens = input.split(/\s+/);
-
-  if (tokens[0] !== "chown") {
-    return {
-      success: false,
-      message:
-        "This lesson only teaches chown. Try: chown root notes.txt",
-      nodes,
-    };
-  }
-
-  if (tokens.length === 1) {
-    return {
-      success: false,
-      message: "chown: missing owner and file operand.",
-      nodes,
-    };
-  }
-
-  if (tokens.length !== 3) {
-    return {
-      success: false,
-      message: "This lesson supports one owner and one file.",
-      nodes,
-    };
-  }
-
-  const owner = tokens[1];
-  const filename = tokens[2];
-
-  if (filename !== "notes.txt") {
-    return {
-      success: false,
-      message: `chown: ${filename}: No such file.`,
-      nodes,
-    };
-  }
-
-  if (owner !== "student" && owner !== "root") {
-    return {
-      success: false,
-      message: `chown: invalid user '${owner}'.`,
-      nodes,
-    };
-  }
-
-  const targetNode = nodes.find(
-    (node) => node.name === filename,
-  );
-
-  if (!targetNode) {
-    return {
-      success: false,
-      message: `chown: ${filename}: No such file.`,
-      nodes,
-    };
-  }
-
-  const updatedNodes = nodes.map((node) =>
-    node.nodeId === targetNode.nodeId
-      ? {
-          ...node,
-          owner,
-        }
-      : node,
-  );
-
-  return {
-    success: true,
-    message: `Owner changed to ${owner} for ${filename}.`,
-    nodes: updatedNodes,
-    affectedNodeId: targetNode.nodeId,
-  };
+export function runChown(rawInput: string, nodes: FilesystemNodeSummary[]): ChownResult {
+  return runLessonCommand({ command: "chown", rawInput, nodes }) as ChownResult;
 }

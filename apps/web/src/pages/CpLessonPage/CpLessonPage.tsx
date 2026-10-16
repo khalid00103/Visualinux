@@ -1,9 +1,6 @@
 
-import {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
 import { TreeNode } from "../../components/filesystem/TreeNode.js";
 import { LessonShell } from "../../components/lessons/LessonShell.js";
@@ -15,8 +12,12 @@ import {
   buildInitialFilesystem,
   runCp,
 } from "./localCpFilesystem.js";
+import { useFilesystemAnimationController } from "../../terminal/useFilesystemAnimationController.js";
+import { createLessonAnimationPlan, formatCopyExplanation } from "../../terminal/commandPresentation.js";
+import { applyFilesystemAnimationPlan } from "../../terminal/useFilesystemAnimationController.js";
 
 export function CpLessonPage() {
+  const navigate = useNavigate();
   const initial = buildInitialFilesystem();
 
   const [nodes, setNodes] = useState<FilesystemNodeSummary[]>(
@@ -28,40 +29,13 @@ export function CpLessonPage() {
   const [history, setHistory] = useState<LessonHistoryEntry[]>([]);
   const [draft, setDraft] = useState("");
   const [taskComplete, setTaskComplete] = useState(false);
-  const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
-
-  const highlightTimerRef = useRef<number | null>(null);
-  const highlightFrameRef = useRef<number | null>(null);
+  const { highlightedNodeIds, expandNodeIds, highlightNodes, expandNodes, resetAnimations } = useFilesystemAnimationController();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const root = nodes.find((node) => node.parentId === null);
 
-  useEffect(() => {
-    return () => {
-      if (highlightTimerRef.current !== null) {
-        window.clearTimeout(highlightTimerRef.current);
-      }
-
-      if (highlightFrameRef.current !== null) {
-        window.cancelAnimationFrame(highlightFrameRef.current);
-      }
-    };
-  }, []);
-
-  function clearHighlightTimers() {
-    if (highlightTimerRef.current !== null) {
-      window.clearTimeout(highlightTimerRef.current);
-      highlightTimerRef.current = null;
-    }
-
-    if (highlightFrameRef.current !== null) {
-      window.cancelAnimationFrame(highlightFrameRef.current);
-      highlightFrameRef.current = null;
-    }
-  }
-
   function handleReset() {
-    clearHighlightTimers();
+    resetAnimations();
 
     const fresh = buildInitialFilesystem();
 
@@ -69,7 +43,6 @@ export function CpLessonPage() {
     setHistory([]);
     setDraft("");
     setTaskComplete(false);
-    setHighlightedNodeIds([]);
 
     inputRef.current?.focus();
   }
@@ -94,30 +67,13 @@ export function CpLessonPage() {
       result.createdNodeId &&
       result.createdName
     ) {
-      clearHighlightTimers();
-
       setNodes(result.nodes);
-      setHighlightedNodeIds([]);
+      applyFilesystemAnimationPlan(
+        createLessonAnimationPlan({ commandName: "cp", success: result.success, beforeNodes: nodes, afterNodes: result.nodes, currentDirectoryId, createdNodeId: result.createdNodeId }),
+        { highlightNodes, removeNodes: () => undefined, expandNodes },
+      );
 
-      highlightFrameRef.current = window.requestAnimationFrame(() => {
-        setHighlightedNodeIds([result.createdNodeId!]);
-
-        highlightTimerRef.current = window.setTimeout(() => {
-          setHighlightedNodeIds([]);
-          highlightTimerRef.current = null;
-        }, 10_000);
-
-        highlightFrameRef.current = null;
-      });
-
-      output = [
-        result.message,
-        "",
-        "Visualized result:",
-        `Original: notes.txt`,
-        `New copy: ${result.createdName}`,
-        "The original file remains unchanged.",
-      ].join("\n");
+      output = formatCopyExplanation("notes.txt", result.createdName);
 
       if (result.createdName === "backup.txt") {
         setTaskComplete(true);
@@ -214,6 +170,7 @@ export function CpLessonPage() {
             allNodes={nodes}
             currentDirectoryId={currentDirectoryId}
             highlightedNodeIds={highlightedNodeIds}
+            expandNodeIds={expandNodeIds}
           />
         ) : null
       }
@@ -228,7 +185,7 @@ export function CpLessonPage() {
         />
       }
       onReset={handleReset}
-      onNext={() => alert("Next lesson coming soon.")}
+      onNext={() => navigate("/learn/mv")}
     />
   );
 }

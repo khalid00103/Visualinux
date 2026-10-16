@@ -2,6 +2,7 @@ import type { CommandHandler } from "../types.js";
 import { pwd, ls, cd, mkdir, rmdir, touch, rm, cp, mv, ln, treeCommand, find, stat, du, df } from "./filesystem-handlers.js";
 import { chmod, chown, chgrp } from "./permission-handlers.js";
 import { cat, head, tail, grep, sort, uniq, wc, diff, echo, nano } from "./text-handlers.js";
+import { clear, man, whoami } from "./system-handlers.js";
 
 export const COMMAND_HANDLERS: Record<string, CommandHandler> = {
   pwd, ls, cd, mkdir, rmdir, touch, rm, cp, mv, ln,
@@ -9,6 +10,7 @@ export const COMMAND_HANDLERS: Record<string, CommandHandler> = {
   find, stat, du, df,
   chmod, chown, chgrp,
   cat, head, tail, grep, sort, uniq, wc, diff, echo, nano,
+  clear, man, whoami,
 };
 
 /**

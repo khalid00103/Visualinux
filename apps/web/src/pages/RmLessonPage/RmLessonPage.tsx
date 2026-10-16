@@ -1,8 +1,5 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
 import { TreeNode } from "../../components/filesystem/TreeNode.js";
 import { LessonShell } from "../../components/lessons/LessonShell.js";
@@ -14,8 +11,12 @@ import {
   buildInitialFilesystem,
   runRm,
 } from "./localRmFilesystem.js";
+import { useFilesystemAnimationController } from "../../terminal/useFilesystemAnimationController.js";
+import { createLessonAnimationPlan, formatRemovalExplanation } from "../../terminal/commandPresentation.js";
+import { applyFilesystemAnimationPlan } from "../../terminal/useFilesystemAnimationController.js";
 
 export function RmLessonPage() {
+  const navigate = useNavigate();
   const initial = buildInitialFilesystem();
 
   const [nodes, setNodes] =
@@ -35,66 +36,25 @@ export function RmLessonPage() {
   const [taskComplete, setTaskComplete] =
     useState(false);
 
-  const [highlightedNodeIds, setHighlightedNodeIds] =
-    useState<string[]>([]);
+  const {
+    highlightedNodeIds,
+    removingNodeIds,
+    expandNodeIds,
+    removeNodes,
+    expandNodes,
+    resetAnimations,
+  } = useFilesystemAnimationController();
 
-    const [removingNodeIds, setRemovingNodeIds] = useState<string[]>([]);
-    const [expandNodeIds, setExpandNodeIds] = useState<string[]>([]);
-
-  const removalTimerRef =
-    useRef<number | null>(null);
-
-  const removalFrameRef =
-    useRef<number | null>(null);
-
-  const inputRef =
-    useRef<HTMLInputElement>(null);
-
-  const root = nodes.find(
-    (node) => node.parentId === null,
-  );
-
-  useEffect(() => {
-    return () => {
-      if (removalTimerRef.current !== null) {
-        window.clearTimeout(
-          removalTimerRef.current,
-        );
-      }
-
-      if (removalFrameRef.current !== null) {
-        window.cancelAnimationFrame(
-          removalFrameRef.current,
-        );
-      }
-    };
-  }, []);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const root = nodes.find((node) => node.parentId === null);
 
   function handleReset() {
-    if (removalTimerRef.current !== null) {
-      window.clearTimeout(
-        removalTimerRef.current,
-      );
-
-      removalTimerRef.current = null;
-    }
-
-    if (removalFrameRef.current !== null) {
-      window.cancelAnimationFrame(
-        removalFrameRef.current,
-      );
-
-      removalFrameRef.current = null;
-    }
-
+    resetAnimations();
     const fresh = buildInitialFilesystem();
 
     setNodes(fresh.nodes);
     setHistory([]);
     setTaskComplete(false);
-    setHighlightedNodeIds([]);
-    setRemovingNodeIds([]);
-    setExpandNodeIds([]);
     setDraft("");
 
     inputRef.current?.focus();
@@ -130,56 +90,17 @@ export function RmLessonPage() {
       const removedName =
         result.removedName;
 
-      const removedNode = nodes.find(
-        (node) => node.nodeId === removedNodeId,
+      const animationPlan = createLessonAnimationPlan({
+        commandName: "rm", success: result.success, beforeNodes: nodes, afterNodes: result.nodes,
+        currentDirectoryId, removedNodeId,
+      });
+      applyFilesystemAnimationPlan(
+        animationPlan,
+        { highlightNodes: () => undefined, removeNodes, expandNodes },
+        (removedIds) => setNodes((current) => current.filter((node) => !removedIds.includes(node.nodeId))),
       );
 
-      const parentNodeId =
-        removedNode?.parentId;
-
-      if (removalTimerRef.current !== null) {
-        window.clearTimeout(
-          removalTimerRef.current,
-        );
-      }
-
-      if (removalFrameRef.current !== null) {
-        window.cancelAnimationFrame(
-          removalFrameRef.current,
-        );
-      }
-
-      setHighlightedNodeIds([]);
-      setRemovingNodeIds([]);
-
-      if (parentNodeId) {
-        setExpandNodeIds([parentNodeId]);
-      }
-
-      removalFrameRef.current =
-        window.requestAnimationFrame(() => {
-          setRemovingNodeIds([
-            removedNodeId,
-          ]);
-
-
-          removalTimerRef.current =
-            window.setTimeout(() => {
-              setNodes(result.nodes);
-              setRemovingNodeIds([]);
-              setRemovingNodeIds([]);
-              removalTimerRef.current = null;
-            }, 3_000);
-
-          removalFrameRef.current = null;
-        });
-
-      output = [
-        result.message,
-        "",
-        "Visualized result:",
-        `Removed: ${removedName}`,
-      ].join("\n");
+      output = formatRemovalExplanation(result.message, removedName);
 
       if (removedName === "notes.txt") {
         setTaskComplete(true);
@@ -304,7 +225,7 @@ export function RmLessonPage() {
       }
       onReset={handleReset}
       onNext={() =>
-        alert("Next lesson coming soon.")
+        navigate("/learn/chmod")
       }
     />
   );

@@ -1,4 +1,5 @@
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
+import { runLessonCommand } from "../../terminal/lessonCommandRuntime.js";
 
 export function buildInitialFilesystem(): {
   nodes: FilesystemNodeSummary[];
@@ -65,36 +66,9 @@ export function buildInitialFilesystem(): {
 }
 
 export interface ClearResult {
-  success: boolean;
-  message: string;
-  nodes: FilesystemNodeSummary[];
+  success: boolean; message: string; nodes: FilesystemNodeSummary[];
 }
 
-export function runClear(
-  rawInput: string,
-  nodes: FilesystemNodeSummary[],
-): ClearResult {
-  const input = rawInput.trim();
-
-  if (!input) {
-    return {
-      success: false,
-      message: "Please type a command.",
-      nodes,
-    };
-  }
-
-  if (input !== "clear") {
-    return {
-      success: false,
-      message: "This lesson only teaches clear. Try: clear",
-      nodes,
-    };
-  }
-
-  return {
-    success: true,
-    message: "",
-    nodes,
-  };
+export function runClear(rawInput: string, nodes: FilesystemNodeSummary[]): ClearResult {
+  return runLessonCommand({ command: "clear", rawInput, nodes }) as ClearResult;
 }

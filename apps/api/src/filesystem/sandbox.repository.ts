@@ -20,6 +20,16 @@ export const sandboxesRepository = {
     return rows[0];
   },
 
+  async findPracticeByUserId(userId: string) {
+  const rows = await db
+    .select()
+    .from(sandboxes)
+    .where(eq(sandboxes.userId, userId))
+    .limit(50);
+
+  return rows.find((sandbox) => sandbox.sandboxType === "practice");
+},
+
   async setRootNodeId(sandboxId: string, rootNodeId: string) {
     // A freshly created sandbox starts "in" its root directory — both fields
     // are set together so there's never a moment where one exists without the other.

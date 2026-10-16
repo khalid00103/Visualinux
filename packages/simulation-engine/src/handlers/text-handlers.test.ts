@@ -81,7 +81,7 @@ describe("uniq", () => {
 describe("wc", () => {
   it("counts lines, words, and characters by default", () => {
     const result = wc(ctx({ stdin: "hello world\nfoo" }));
-    expect(result.outputText).toBe("2  3  15");
+    expect(result.outputText).toBe("2 3 15");
   });
 
   it("counts only lines with -l", () => {

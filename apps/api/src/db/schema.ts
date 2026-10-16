@@ -301,3 +301,34 @@ export const commandHistory = pgTable(
     index("command_history_error_type_idx").on(table.errorType),
   ]
 );
+
+
+ // --- lesson_completions ---
+// One record per completed lesson per user.
+// The unique user/lesson index makes repeated completion requests safe.
+
+export const lessonCompletions = pgTable(
+  "lesson_completions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    lessonId: varchar("lesson_id", { length: 64 }).notNull(),
+    completedAt: timestamp("completed_at", {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("lesson_completions_user_lesson_unique_idx").on(
+      table.userId,
+      table.lessonId,
+    ),
+    index("lesson_completions_user_completed_idx").on(
+      table.userId,
+      table.completedAt,
+    ),
+  ],
+);

@@ -1,4 +1,5 @@
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
+import { runLessonCommand } from "../../terminal/lessonCommandRuntime.js";
 
 /**
  * Initial filesystem:
@@ -87,90 +88,9 @@ export function buildInitialFilesystem(): {
 }
 
 export interface PwdResult {
-  success: boolean;
-  message: string;
-  currentPath: string;
-  pathNodeIds: string[];
+  success: boolean; message: string; currentPath: string; pathNodeIds: string[];
 }
 
-export function runPwd(
-  rawInput: string,
-  nodes: FilesystemNodeSummary[],
-  currentDirectoryId: string,
-): PwdResult {
-  const trimmed = rawInput.trim();
-  const tokens = trimmed.split(/\s+/).filter(Boolean);
-
-  if (tokens.length === 0) {
-    return {
-      success: false,
-      message: "Please type a command.",
-      currentPath: "",
-      pathNodeIds: [],
-    };
-  }
-
-  const command = tokens[0];
-
-  if (command !== "pwd") {
-    return {
-      success: false,
-      message:
-        "This lesson only teaches the pwd command. Try: pwd",
-      currentPath: "",
-      pathNodeIds: [],
-    };
-  }
-
-  if (tokens.length > 1) {
-    return {
-      success: false,
-      message: "pwd: this lesson does not support options or arguments.",
-      currentPath: "",
-      pathNodeIds: [],
-    };
-  }
-
-  const currentNode = nodes.find(
-    (node) => node.nodeId === currentDirectoryId,
-  );
-
-  if (!currentNode) {
-    return {
-      success: false,
-      message: "pwd: current directory could not be found.",
-      currentPath: "",
-      pathNodeIds: [],
-    };
-  }
-
-  const pathParts: string[] = [];
-  const pathNodeIds: string[] = [];
-
-  let node: FilesystemNodeSummary | undefined = currentNode;
-
-  while (node) {
-    pathNodeIds.unshift(node.nodeId);
-
-    if (node.name !== "/") {
-      pathParts.unshift(node.name);
-    }
-
-    if (node.parentId === null) {
-      break;
-    }
-
-    node = nodes.find(
-      (candidate) => candidate.nodeId === node?.parentId,
-    );
-  }
-
-  const currentPath = `/${pathParts.join("/")}`;
-
-  return {
-    success: true,
-    message: currentPath,
-    currentPath,
-    pathNodeIds,
-  };
+export function runPwd(rawInput: string, nodes: FilesystemNodeSummary[], currentDirectoryId: string): PwdResult {
+  return runLessonCommand({ command: "pwd", rawInput, nodes, currentDirectoryId }) as PwdResult;
 }

@@ -100,8 +100,17 @@ export function parseCommandLine(
     );
 
     const [commandName, ...rest] = expandedTokens;
-    const flags = rest.filter((t) => t.startsWith("-"));
-    const args = rest.filter((t) => !t.startsWith("-"));
+    // chmod's first operand is a mode, and modes such as `-x` are valid
+    // educational inputs rather than command-line flags. Keep that operand
+    // positional so every caller (lessons, optimistic practice and API) parses
+    // it consistently.
+    const flags: string[] = [];
+    const args: string[] = [];
+    rest.forEach((token, index) => {
+      const isChmodMode = commandName === "chmod" && index === 0;
+      if (token.startsWith("-") && !isChmodMode) flags.push(token);
+      else args.push(token);
+    });
 
     return { commandName: commandName ?? "", args, flags };
   });

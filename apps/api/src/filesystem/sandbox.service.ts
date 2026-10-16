@@ -85,6 +85,20 @@ export const sandboxService = {
     return sandboxesRepository.findById(sandbox.id);
   },
 
+  async getOrCreatePracticeSandbox(userId: string) {
+  const existing = await sandboxesRepository.findPracticeByUserId(userId);
+
+  if (existing) {
+    return existing;
+  }
+
+  return this.createFromTemplate({
+      userId,
+      templateKey: "practice_default",
+      sandboxType: "practice",
+    });
+  },
+
   async getTreeSummary(sandboxId: string): Promise<FilesystemNodeSummary[]> {
     const sandbox = await sandboxesRepository.findById(sandboxId);
     if (!sandbox) throw new NotFoundError("Sandbox not found.");
@@ -102,7 +116,7 @@ export const sandboxService = {
       owner: n.owner,
       groupOwner: n.groupOwner,
       hasContent: n.content !== null,
-      currentDirectory: n.id === sandbox.rootNodeId,
+      currentDirectory: n.id === sandbox.currentDirectoryId,
     }));
   },
 
