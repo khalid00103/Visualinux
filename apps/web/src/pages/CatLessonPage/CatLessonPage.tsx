@@ -1,3 +1,4 @@
+﻿import { useLessonProgressSync } from "../../hooks/useLessonProgressSync.js";
 
 import {
   useRef,
@@ -27,6 +28,7 @@ export function CatLessonPage() {
   const [history, setHistory] = useState<LessonHistoryEntry[]>([]);
   const [draft, setDraft] = useState("");
   const [taskComplete, setTaskComplete] = useState(false);
+  useLessonProgressSync("cat", taskComplete);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const root = nodes.find((node) => node.parentId === null);
@@ -159,3 +161,4 @@ export function CatLessonPage() {
     />
   );
 }
+

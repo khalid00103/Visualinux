@@ -1,3 +1,4 @@
+﻿import { useLessonProgressSync } from "../../hooks/useLessonProgressSync.js";
 import {
   useRef,
   useState,
@@ -25,6 +26,7 @@ export function ManLessonPage() {
   const [history, setHistory] = useState<LessonHistoryEntry[]>([]);
   const [draft, setDraft] = useState("");
   const [taskComplete, setTaskComplete] = useState(false);
+  useLessonProgressSync("man", taskComplete);
 
   const inputRef = useRef<HTMLInputElement>(null);
 

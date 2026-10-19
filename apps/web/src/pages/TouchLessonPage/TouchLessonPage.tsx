@@ -1,3 +1,4 @@
+﻿import { useLessonProgressSync } from "../../hooks/useLessonProgressSync.js";
 import {
   useRef,
   useState,
@@ -39,6 +40,7 @@ export function TouchLessonPage() {
   const [draft, setDraft] = useState("");
 
   const [taskComplete, setTaskComplete] = useState(false);
+  useLessonProgressSync("touch", taskComplete);
 
   const { highlightedNodeIds, expandNodeIds, highlightNodes, expandNodes, resetAnimations } = useFilesystemAnimationController();
   const inputRef = useRef<HTMLInputElement>(null);

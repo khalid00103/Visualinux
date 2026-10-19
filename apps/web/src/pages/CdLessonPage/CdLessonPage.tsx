@@ -1,3 +1,4 @@
+﻿import { useLessonProgressSync } from "../../hooks/useLessonProgressSync.js";
 import {
   useRef,
   useState,
@@ -38,6 +39,7 @@ export function CdLessonPage() {
 
   const [taskComplete, setTaskComplete] =
     useState(false);
+  useLessonProgressSync("cd", taskComplete);
 
   const { expandNodeIds, expandNodes, resetAnimations } = useFilesystemAnimationController();
 

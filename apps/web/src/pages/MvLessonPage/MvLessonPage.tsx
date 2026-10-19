@@ -1,3 +1,4 @@
+﻿import { useLessonProgressSync } from "../../hooks/useLessonProgressSync.js";
 
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -28,6 +29,7 @@ export function MvLessonPage() {
   const [history, setHistory] = useState<LessonHistoryEntry[]>([]);
   const [draft, setDraft] = useState("");
   const [taskComplete, setTaskComplete] = useState(false);
+  useLessonProgressSync("mv", taskComplete);
   const { highlightedNodeIds, expandNodeIds, highlightNodes, expandNodes, resetAnimations } = useFilesystemAnimationController();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -200,3 +202,4 @@ export function MvLessonPage() {
     />
   );
 }
+

@@ -1,3 +1,4 @@
+﻿import { useLessonProgressSync } from "../../hooks/useLessonProgressSync.js";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { FilesystemNodeSummary } from "@visualinux/shared-types";
@@ -35,6 +36,7 @@ export function PwdLessonPage() {
 
   const [taskComplete, setTaskComplete] =
     useState(false);
+  useLessonProgressSync("pwd", taskComplete);
 
   const { highlightedNodeIds, expandNodeIds, highlightNodes, expandNodes, resetAnimations } = useFilesystemAnimationController();
   const inputRef = useRef<HTMLInputElement>(null);
