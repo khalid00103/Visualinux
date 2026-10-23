@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  API_PORT: z.coerce.number().int().positive().default(4000),
+  API_PORT: z.coerce.number().int().positive().default(Number(process.env.PORT) || 4000),
 
   // The frontend's origin, needed for CORS (credentialed cross-origin requests
   // from apps/web require an exact, non-wildcard Access-Control-Allow-Origin).

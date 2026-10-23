@@ -80,15 +80,43 @@ export const mkdir: CommandHandler = (ctx) => {
   for (const path of ctx.args) {
     const resolved = ctx.tree.resolve(ctx.currentDirectoryId, path);
 
+
     if ("node" in resolved && resolved.node) {
-      if (!usesParentFlag) {
-        return { success: false, outputText: `mkdir: cannot create directory '${path}': File exists`, errorType: "already_exists", operations: NO_OPS, animationEvents: NO_EVENTS };
+      if (resolved.node.nodeType !== "directory") {
+        return {
+          success: false,
+          outputText: `mkdir: cannot create directory '${path}': File exists`,
+          errorType: "already_exists",
+          operations: NO_OPS,
+          animationEvents: NO_EVENTS,
+        };
       }
-      continue; // -p: already existing is not an error
+
+      if (!usesParentFlag) {
+        return {
+          success: false,
+          outputText: `mkdir: cannot create directory '${path}': File exists`,
+          errorType: "already_exists",
+          operations: NO_OPS,
+          animationEvents: NO_EVENTS,
+        };
+      }
+
+      continue; // -p: an existing directory is not an error
     }
 
     if (!resolved.parent) {
       return { success: false, outputText: `mkdir: cannot create directory '${path}': No such file or directory`, errorType: "not_found", operations: NO_OPS, animationEvents: NO_EVENTS };
+    }
+
+    if (resolved.parent.nodeType !== "directory") {
+      return {
+        success: false,
+        outputText: `mkdir: cannot create directory '${path}': Not a directory`,
+        errorType: "not_a_directory",
+        operations: NO_OPS,
+        animationEvents: NO_EVENTS,
+      };
     }
 
     if (resolved.missingSegments.length > 1 && !usesParentFlag) {
@@ -131,6 +159,31 @@ export const rmdir: CommandHandler = (ctx) => {
     if (resolved.node.nodeType !== "directory") {
       return { success: false, outputText: `rmdir: failed to remove '${path}': Not a directory`, errorType: "not_a_directory", operations: NO_OPS, animationEvents: NO_EVENTS };
     }
+        if (resolved.node.id === ctx.tree.getRoot()?.id) {
+      return {
+        success: false,
+        outputText: `rmdir: failed to remove '${path}': Operation not permitted`,
+        errorType: "permission_denied",
+        operations: NO_OPS,
+        animationEvents: NO_EVENTS,
+      };
+    }
+
+    const containsCurrentDirectory =
+      resolved.node.id === ctx.currentDirectoryId ||
+      ctx.tree
+        .getDescendants(resolved.node.id)
+        .some((descendant) => descendant.id === ctx.currentDirectoryId);
+
+    if (containsCurrentDirectory) {
+      return {
+        success: false,
+        outputText: `rmdir: failed to remove '${path}': cannot remove the current working directory`,
+        errorType: "permission_denied",
+        operations: NO_OPS,
+        animationEvents: NO_EVENTS,
+      };
+    }
     if (ctx.tree.getChildren(resolved.node.id).length > 0) {
       return { success: false, outputText: `rmdir: failed to remove '${path}': Directory not empty`, errorType: "directory_not_empty", operations: NO_OPS, animationEvents: NO_EVENTS };
     }
@@ -159,6 +212,16 @@ export const touch: CommandHandler = (ctx) => {
       return { success: false, outputText: `touch: cannot touch '${path}': No such file or directory`, errorType: "not_found", operations: NO_OPS, animationEvents: NO_EVENTS };
     }
 
+        if (resolved.parent.nodeType !== "directory") {
+      return {
+        success: false,
+        outputText: `touch: cannot touch '${path}': Not a directory`,
+        errorType: "not_a_directory",
+        operations: NO_OPS,
+        animationEvents: NO_EVENTS,
+      };
+    }
+
     const id = generateId();
     operations.push({ type: "createNode", id, parentId: resolved.parent.id, nodeType: "file", name: resolved.missingSegments[0], permissions: "rw-r--r--", content: "" });
     animationEvents.push({ type: "create", nodeId: id });
@@ -180,6 +243,33 @@ export const rm: CommandHandler = (ctx) => {
     const resolved = ctx.tree.resolve(ctx.currentDirectoryId, path);
     if (!("node" in resolved) || !resolved.node) {
       return { success: false, outputText: `rm: cannot remove '${path}': No such file or directory`, errorType: "not_found", operations: NO_OPS, animationEvents: NO_EVENTS };
+    }
+
+
+    if (resolved.node.id === ctx.tree.getRoot()?.id) {
+      return {
+        success: false,
+        outputText: `rm: cannot remove '${path}': Operation not permitted`,
+        errorType: "permission_denied",
+        operations: NO_OPS,
+        animationEvents: NO_EVENTS,
+      };
+    }
+
+    const containsCurrentDirectory =
+      resolved.node.id === ctx.currentDirectoryId ||
+      ctx.tree
+        .getDescendants(resolved.node.id)
+        .some((descendant) => descendant.id === ctx.currentDirectoryId);
+
+    if (containsCurrentDirectory) {
+      return {
+        success: false,
+        outputText: `rm: refusing to remove '${path}': target contains the current working directory`,
+        errorType: "permission_denied",
+        operations: NO_OPS,
+        animationEvents: NO_EVENTS,
+      };
     }
 
     if (resolved.node.nodeType === "directory" && !recursive) {
@@ -231,10 +321,37 @@ export const cp: CommandHandler = (ctx) => {
     if (!destResolved.parent || destResolved.missingSegments.length > 1) {
       return { success: false, outputText: `cp: cannot create '${destPath}': No such file or directory`, errorType: "not_found", operations: NO_OPS, animationEvents: NO_EVENTS };
     }
+    if (destResolved.parent.nodeType !== "directory") {
+      return {
+        success: false,
+        outputText: `cp: cannot create '${destPath}': Not a directory`,
+        errorType: "not_a_directory",
+        operations: NO_OPS,
+        animationEvents: NO_EVENTS,
+      };
+    }
     destParentId = destResolved.parent.id;
     destName = destResolved.missingSegments[0];
   } else {
     return { success: false, outputText: `cp: cannot overwrite '${destPath}': File exists`, errorType: "already_exists", operations: NO_OPS, animationEvents: NO_EVENTS };
+  }
+
+    if (sourceResolved.node.nodeType === "directory") {
+    const destinationIsInsideSource =
+      destParentId === sourceResolved.node.id ||
+      ctx.tree
+        .getDescendants(sourceResolved.node.id)
+        .some((descendant) => descendant.id === destParentId);
+
+    if (destinationIsInsideSource) {
+      return {
+        success: false,
+        outputText: `cp: cannot copy directory '${sourcePath}' into itself`,
+        errorType: "invalid_arguments",
+        operations: NO_OPS,
+        animationEvents: NO_EVENTS,
+      };
+    }
   }
 
   const operations: HandlerResult["operations"] = [];
@@ -288,10 +405,40 @@ export const mv: CommandHandler = (ctx) => {
     if (!destResolved.parent || destResolved.missingSegments.length > 1) {
       return { success: false, outputText: `mv: cannot move to '${destPath}': No such file or directory`, errorType: "not_found", operations: NO_OPS, animationEvents: NO_EVENTS };
     }
+
+    if (destResolved.parent.nodeType !== "directory") {
+      return {
+        success: false,
+        outputText: `mv: cannot move to '${destPath}': Not a directory`,
+        errorType: "not_a_directory",
+        operations: NO_OPS,
+        animationEvents: NO_EVENTS,
+      };
+    }
+
     newParentId = destResolved.parent.id;
     newName = destResolved.missingSegments[0];
   } else {
     return { success: false, outputText: `mv: cannot overwrite '${destPath}': File exists`, errorType: "already_exists", operations: NO_OPS, animationEvents: NO_EVENTS };
+  }
+
+    // Prevent moving a directory into itself or one of its descendants.
+  if (
+    sourceResolved.node.nodeType === "directory" &&
+    (
+      newParentId === sourceResolved.node.id ||
+      ctx.tree
+        .getDescendants(sourceResolved.node.id)
+        .some((node) => node.id === newParentId)
+    )
+  ) {
+    return {
+      success: false,
+      outputText: `mv: cannot move '${sourcePath}' to a subdirectory of itself, '${destPath}'`,
+      errorType: "invalid_arguments",
+      operations: NO_OPS,
+      animationEvents: NO_EVENTS,
+    };
   }
 
   return {
@@ -319,6 +466,16 @@ export const ln: CommandHandler = (ctx) => {
   }
   if (!linkResolved.parent || linkResolved.missingSegments.length > 1) {
     return { success: false, outputText: `ln: failed to create symbolic link '${linkPath}': No such file or directory`, errorType: "not_found", operations: NO_OPS, animationEvents: NO_EVENTS };
+  }
+
+    if (linkResolved.parent.nodeType !== "directory") {
+    return {
+      success: false,
+      outputText: `ln: failed to create symbolic link '${linkPath}': Not a directory`,
+      errorType: "not_a_directory",
+      operations: NO_OPS,
+      animationEvents: NO_EVENTS,
+    };
   }
 
   const id = generateId();

@@ -168,4 +168,63 @@ describe("useCommandExecutionOrchestrator — failure handling", () => {
     });
     expect(useSessionStore.getState().nodes).toEqual(nodesBefore);
   });
+
+
+  it("preserves previous history when a command fails before optimistic history is created", async () => {
+    vi.mocked(terminalApi.executeCommand).mockRejectedValue(
+      new Error("network down"),
+    );
+
+    const existingDirectory: FilesystemNodeSummary = {
+      nodeId: "project-id",
+      parentId: "home-id",
+      nodeType: "directory",
+      name: "project",
+      permissions: "rwxr-xr-x",
+      owner: "user",
+      groupOwner: "user",
+      hasContent: false,
+      currentDirectory: false,
+    };
+
+    useSessionStore.getState().setNodes([
+      ...useSessionStore.getState().nodes,
+      existingDirectory,
+    ]);
+
+    useSessionStore.getState().pushHistoryEntry({
+      rawInput: "pwd",
+      outputText: "/home",
+      success: true,
+      isPending: false,
+    });
+
+    const { result } = renderHook(
+      () => useCommandExecutionOrchestrator(),
+    );
+
+    await act(async () => {
+      await result.current.execute("mkdir project");
+    });
+
+    const history = useSessionStore.getState().history;
+
+    expect(history).toHaveLength(2);
+
+    expect(history[0]).toEqual({
+      rawInput: "pwd",
+      outputText: "/home",
+      success: true,
+      isPending: false,
+    });
+
+    expect(history[1]).toMatchObject({
+      rawInput: "mkdir project",
+      success: false,
+      isPending: false,
+    });
+
+    expect(history[1].outputText).toBe("Network error — please try again.");
+  });
+
 });

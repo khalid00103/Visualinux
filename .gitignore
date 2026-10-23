@@ -1,7 +1,9 @@
 node_modules/
 dist/
 build/
+# Environment secrets
 .env
-.env.local
+.env.*
+!.env.example
 *.log
 .DS_Store

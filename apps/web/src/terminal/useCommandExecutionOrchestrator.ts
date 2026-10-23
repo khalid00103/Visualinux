@@ -56,6 +56,8 @@ export function useCommandExecutionOrchestrator() {
       const preSnapshot = nodes;
       const preCurrentDirectoryId = currentDirectoryId;
 
+      let hasOptimisticHistoryEntry = false;
+
       if (!skipOptimistic) {
         const registry = createClientRegistryLookup();
         const optimistic = interpret(parsed, currentDirectoryId, clientTree, registry);
@@ -83,6 +85,7 @@ export function useCommandExecutionOrchestrator() {
           setNodes(applyDiffToNodes(nodes, optimisticDiff));
           if (optimistic.newCurrentDirectoryId) setCurrentDirectoryId(optimistic.newCurrentDirectoryId);
           pushHistoryEntry({ rawInput, outputText: optimistic.outputText, success: true, isPending: true });
+          hasOptimisticHistoryEntry = true;
         }
       }
 
@@ -141,10 +144,20 @@ export function useCommandExecutionOrchestrator() {
           // Match the guided clear lesson: clear the visible terminal history;
           // the backend still records the command in persistent command history.
           clearHistory();
-        } else if (skipOptimistic) {
-          pushHistoryEntry({ rawInput, outputText: presentation.outputText, success: response.success, isPending: false });
+        } else if (skipOptimistic || !hasOptimisticHistoryEntry) {
+          pushHistoryEntry({
+            rawInput,
+            outputText: presentation.outputText,
+            success: response.success,
+            isPending: false,
+          });
         } else {
-          replaceLastHistoryEntry({ rawInput, outputText: presentation.outputText, success: response.success, isPending: false });
+          replaceLastHistoryEntry({
+            rawInput,
+            outputText: presentation.outputText,
+            success: response.success,
+            isPending: false,
+          });
         }
 
         setPendingConfirmation(null);
@@ -161,10 +174,20 @@ export function useCommandExecutionOrchestrator() {
         }
 
         const message = err instanceof ApiError ? err.message : "Network error — please try again.";
-        if (skipOptimistic) {
-          pushHistoryEntry({ rawInput, outputText: message, success: false, isPending: false });
+        if (skipOptimistic || !hasOptimisticHistoryEntry) {
+          pushHistoryEntry({
+            rawInput,
+            outputText: message,
+            success: false,
+            isPending: false,
+          });
         } else {
-          replaceLastHistoryEntry({ rawInput, outputText: message, success: false, isPending: false });
+          replaceLastHistoryEntry({
+            rawInput,
+            outputText: message,
+            success: false,
+            isPending: false,
+          });
         }
       }
     },

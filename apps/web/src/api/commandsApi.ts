@@ -1,4 +1,4 @@
-import type { AutocompleteSuggestion } from "@visualinux/shared-types";
+import type { AutocompleteSuggestion, CommandDetail } from "@visualinux/shared-types";
 import { apiRequest } from "./client.js";
 
 export const commandsApi = {
@@ -7,4 +7,12 @@ export const commandsApi = {
       accessToken,
     });
   },
+
+    getByName(accessToken: string, name: string) {
+    return apiRequest<CommandDetail>(
+      `/api/v1/commands/${encodeURIComponent(name)}`,
+      { accessToken }
+    );
+  },
+
 };

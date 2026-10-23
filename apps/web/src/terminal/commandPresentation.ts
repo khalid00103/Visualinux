@@ -274,12 +274,299 @@ export function createLessonAnimationPlan(input: LessonAnimationInput): Filesyst
   });
 }
 
+function formatCommandError(input: CommandPresentationInput): string {
+  const { response, commandName } = input;
+
+    const currentDirectoryPath = currentPath(
+    input.beforeNodes,
+    input.currentDirectoryId
+  );
+
+  const currentDirectoryItems = childrenOf(
+    input.beforeNodes,
+    input.currentDirectoryId
+  );
+
+  const explanations: Record<string, string> = {
+    not_found:
+      "The requested path or item could not be found. Check its spelling and location. Use pwd to check your current directory and ls to inspect its contents.",
+
+    not_a_directory:
+      "A component of the supplied path is not a directory. Check that each directory in the path exists and is actually a folder.",
+
+    already_exists:
+      "An item with that name already exists. Inspect the existing item or choose a different name or destination.",
+
+    invalid_arguments:
+      "The arguments do not match the syntax supported by this command. Check the error message and the command's required arguments.",
+
+    is_a_directory:
+      "The target is a directory, but this operation does not accept it in the way you supplied it.",
+
+    directory_not_empty:
+      "The directory contains items. Inspect its contents and move or remove them before trying to remove an empty directory.",
+  };
+
+  let explanation = explanations[response.errorType ?? ""];
+
+
+  const notFoundHints: Record<string, string> = {
+    cd: "The directory you tried to enter does not exist or the path is incorrect.",
+    ls: "Check the path supplied to ls. Without a path, ls lists the current directory.",
+    mkdir: "The parent directory must already exist before mkdir can create a new directory.",
+    touch: "The parent directory must already exist before touch can create a file.",
+    rmdir: "Check that the target exists and is a directory.",
+    rm: "Check the target path and spelling before retrying.",
+    cp: "Check that the source exists and that the destination path is valid.",
+    mv: "Check that the source exists and that the destination path is valid.",
+    ln: "Check that the source and destination paths are valid for the selected link operation.",
+    tree: "Check that the starting directory exists.",
+    find: "Check that the directory being searched exists.",
+    stat: "Check that the target path exists.",
+    du: "Check that the target path exists.",
+    chmod: "Check that the target item exists and its path is correct.",
+    chown: "Check that the target item exists and its path is correct.",
+    chgrp: "Check that the target item exists and its path is correct.",
+    cat: "Check that the input file exists and its path is correct.",
+    head: "Check that the input file exists and its path is correct.",
+    tail: "Check that the input file exists and its path is correct.",
+    grep: "Check that the input file exists and its path is correct.",
+    sort: "Check that the input file exists and its path is correct.",
+    uniq: "Check that the input file exists and its path is correct.",
+    wc: "Check that the input file exists and its path is correct.",
+    diff: "Check that both input files exist and their paths are correct.",
+    nano: "Check that the target file path exists.",
+  };
+
+
+  const notADirectoryHints: Record<string, string> = {
+    mkdir:
+      "At least one component of the requested path is a file, not a directory. Use an existing directory as the parent or correct the path.",
+    touch:
+      "At least one component of the requested path is a file, not a directory. Check the parent directory path.",
+    cp:
+      "A component of the source or destination path is not a directory. Check each parent path and the destination directory.",
+    mv:
+      "A component of the source or destination path is not a directory. Check each parent path and the destination directory.",
+    ln:
+      "A component of the source or destination path is not a directory. Check each parent path.",
+    tree:
+      "The starting path contains a component that is not a directory. Check the path and choose a valid directory.",
+    find:
+      "The search path contains a component that is not a directory. Check the path and choose a valid directory.",
+    chmod:
+      "A component of the target path is not a directory. Check the parent directories in the supplied path.",
+    chown:
+      "A component of the target path is not a directory. Check the parent directories in the supplied path.",
+    chgrp:
+      "A component of the target path is not a directory. Check the parent directories in the supplied path.",
+    cat:
+      "A component of the file path is not a directory. Check each parent directory in the path.",
+    head:
+      "A component of the file path is not a directory. Check each parent directory in the path.",
+    tail:
+      "A component of the file path is not a directory. Check each parent directory in the path.",
+    grep:
+      "A component of the file path is not a directory. Check each parent directory in the path.",
+    sort:
+      "A component of the file path is not a directory. Check each parent directory in the path.",
+    uniq:
+      "A component of the file path is not a directory. Check each parent directory in the path.",
+    wc:
+      "A component of the file path is not a directory. Check each parent directory in the path.",
+    diff:
+      "A component of one of the input paths is not a directory. Check both file paths and their parent directories.",
+  };
+
+  if (response.errorType === "not_a_directory") {
+    const hint = notADirectoryHints[commandName];
+
+    if (hint) {
+      explanation = `${explanation ?? explanations.not_a_directory} ${hint}`;
+    }
+  }
+
+  if (response.errorType === "not_found" && commandName !== "man") {
+    const hint = notFoundHints[commandName];
+
+    if (hint) {
+      explanation = `${explanation ?? explanations.not_found} ${hint}`;
+    }
+  }
+
+
+  const commandExamples: Record<string, string> = {
+    pwd: "pwd",
+    ls: "ls",
+    cd: "cd projects",
+    mkdir: "mkdir project",
+    rmdir: "rmdir old-folder",
+    touch: "touch notes.txt",
+    rm: "rm notes.txt",
+    cp: "cp app.py src/",
+    mv: "mv app.py src/",
+    ln: "ln -s original.txt shortcut.txt",
+    tree: "tree",
+    chmod: "chmod 755 script.sh",
+    chown: "chown alice notes.txt",
+    chgrp: "chgrp staff notes.txt",
+    find: "find . -name notes.txt",
+    stat: "stat notes.txt",
+    du: "du projects",
+    df: "df",
+    clear: "clear",
+    man: "man ls",
+    whoami: "whoami",
+    cat: "cat notes.txt",
+    head: "head notes.txt",
+    tail: "tail notes.txt",
+    grep: 'grep "TODO" notes.txt',
+    sort: "sort names.txt",
+    uniq: "uniq sorted-names.txt",
+    wc: "wc notes.txt",
+    diff: "diff old.txt new.txt",
+    echo: 'echo "Hello, Linux!"',
+    nano: "nano notes.txt",
+  };
+
+  if (response.errorType === "invalid_arguments") {
+    const example = commandExamples[commandName];
+
+    explanation = example
+      ? `The arguments do not match the syntax supported by this command. Check the required arguments and flags.\nExample of valid usage: ${example}`
+      : "The arguments do not match the syntax supported by this command. Check its required arguments and flags.";
+  }
+
+  if (response.errorType === "unrecognized_command") {
+    explanation =
+      "This command is not recognized by the simulator. Check the spelling, use the terminal's command suggestions, or try a supported command.";
+  }
+
+  if (response.errorType === "permission_denied") {
+    explanation =
+      "The simulated user does not have permission to perform this operation. Check the item's permissions and the operation you are attempting.";
+  }
+
+
+  if (response.errorType === "not_found" && commandName === "man") {
+    explanation =
+      "The simulator does not have a manual page for the requested command.";
+  }
+
+  if (response.errorType === "is_a_directory" && commandName === "cp") {
+    explanation =
+      "The source is a directory. This simulator requires the -r option to copy a directory and its contents.";
+  }
+
+  if (response.errorType === "is_a_directory" && commandName === "rm") {
+    explanation =
+      "The target is a directory. Recursive removal can delete the directory and its contents, so check the target carefully before using rm -r.";
+  }
+
+
+  if (response.errorType === "is_a_directory" && commandName === "nano") {
+    explanation =
+      "The target is a directory, not a regular file. The simulated nano editor opens files, so provide a file path instead.";
+  }
+
+  if (response.errorType === "not_a_directory" && commandName === "cd") {
+    explanation =
+      "The path you supplied is not a directory. The cd command can only move into an existing directory, not a regular file.";
+  }
+
+  if (
+    response.errorType === "already_exists" &&
+    ["cp", "mv", "ln"].includes(commandName)
+  ) {
+    explanation =
+      "The destination already exists. This simulator does not overwrite an existing destination for this operation. Inspect the item or choose a different destination.";
+  }
+
+  if (response.errorType === "already_exists") {
+    const targetPath = input.args[input.args.length - 1];
+
+    // Only inspect a simple name in the current directory.
+    // Nested and absolute paths keep the generic explanation.
+    if (
+      targetPath &&
+      !targetPath.includes("/") &&
+      targetPath !== "." &&
+      targetPath !== ".."
+    ) {
+      const existingItem = input.beforeNodes.find(
+        (node) =>
+          node.parentId === input.currentDirectoryId &&
+          node.name === targetPath
+      );
+
+
+      if (existingItem) {
+        if (["cp", "mv", "ln"].includes(commandName)) {
+          explanation =
+            `The destination '${existingItem.name}' already exists in your current directory (${currentDirectoryPath}). ` +
+            `It is a ${existingItem.nodeType}. Choose a different destination or inspect the existing item.`;
+        } else {
+          explanation =
+            `An item named '${existingItem.name}' already exists in your current directory (${currentDirectoryPath}). ` +
+            `It is a ${existingItem.nodeType}. Inspect it with ls or choose a different name.`;
+        }
+      }
+
+    }
+  }
+
+  const lines: string[] = [
+    response.outputText || "The command could not be completed.",
+  ];
+
+  if (explanation) {
+    lines.push("", "What happened:", explanation);
+  }
+
+  if (response.errorType === "not_found" && commandName !== "man") {
+    const visibleItems = currentDirectoryItems
+      .map((node) =>
+        node.nodeType === "directory"
+          ? `${node.name}/`
+          : node.name
+      )
+      .sort((a, b) => a.localeCompare(b));
+
+    lines.push(
+      "",
+      "Your current simulated directory:",
+      currentDirectoryPath,
+      "",
+      "Items directly inside this directory:",
+      visibleItems.length > 0
+        ? visibleItems.slice(0, 10).join(", ")
+        : "(This directory is empty.)"
+    );
+
+    if (visibleItems.length > 10) {
+      lines.push(`...and ${visibleItems.length - 10} more item(s).`);
+    }
+  }
+  if (response.suggestion) {
+    lines.push(
+      "",
+      "Suggested correction:",
+      response.suggestion.description,
+      `Try: ${response.suggestion.suggestedCommand}`,
+      "This suggestion has not been executed."
+    );
+  }
+
+  return lines.join("\n");
+}
+
 function formatEducationalOutput(input: CommandPresentationInput): string {
   const {
     commandName, args, flags, isSingleCommand, response, beforeNodes, afterNodes,
     currentDirectoryId, newCurrentDirectoryId,
   } = input;
-  if (!response.success || !isSingleCommand) return response.outputText;
+  if (!isSingleCommand) return response.outputText;
+  if (!response.success) return formatCommandError(input);
 
   const noFlags = flags.length === 0;
   const noArgs = args.length === 0;

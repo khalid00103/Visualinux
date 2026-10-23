@@ -130,13 +130,11 @@ export function CdLessonPage() {
 
       output = formatCurrentDirectory(result.message, newPath);
 
-      if (
-        newPath ===
-        "/home/student/documents" || newPath ===
-        "/home/student/downloads"
-      ) {
+
+      if (newPath === "/home/student/documents") {
         setTaskComplete(true);
       }
+
     }
 
     setHistory((previous) => [

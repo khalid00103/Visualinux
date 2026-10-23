@@ -76,6 +76,31 @@ describe("mkdir", () => {
     expect(result.success).toBe(true);
     expect(result.operations).toHaveLength(0);
   });
+
+    it("with -p, refuses to create directories under an existing file", () => {
+    const result = mkdir(
+      ctx({ args: ["Documents/notes.txt/child"], flags: ["-p"] }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorType).toBe("not_a_directory");
+    expect(result.operations).toEqual([]);
+  });
+
+  it("refuses to treat an existing file as a directory with -p", () => {
+    const result = mkdir(
+      ctx({
+        currentDirectoryId: "docs",
+        args: ["notes.txt"],
+        flags: ["-p"],
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorType).toBe("already_exists");
+    expect(result.operations).toEqual([]);
+  });
+
 });
 
 describe("rmdir", () => {
@@ -84,10 +109,34 @@ describe("rmdir", () => {
     expect(result.success).toBe(true);
   });
 
-  it("refuses to remove a non-empty directory", () => {
-    const result = rmdir(ctx({ args: ["Documents"] }));
-    expect(result.errorType).toBe("directory_not_empty");
+
+    it("refuses to remove a non-empty directory", () => {
+      const result = rmdir(ctx({ args: ["Documents"] }));
+
+      expect(result.success).toBe(false);
+      expect(result.errorType).toBe("directory_not_empty");
+      expect(result.operations).toEqual([]);
+    });
+
+    it("refuses to remove the current working directory", () => {
+    const result = rmdir(
+      ctx({
+        currentDirectoryId: "empty-dir",
+        args: ["."],
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.operations).toEqual([]);
   });
+
+  it("refuses to remove the filesystem root", () => {
+    const result = rmdir(ctx({ args: ["/"] }));
+
+    expect(result.success).toBe(false);
+    expect(result.operations).toEqual([]);
+  });
+
 });
 
 describe("touch", () => {
@@ -101,6 +150,33 @@ describe("touch", () => {
     expect(result.success).toBe(true);
     expect(result.operations).toHaveLength(0);
   });
+    it("refuses to create a file under an existing file", () => {
+    const result = touch(
+      ctx({
+        currentDirectoryId: "docs",
+        args: ["notes.txt/child.txt"],
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorType).toBe("not_a_directory");
+    expect(result.operations).toEqual([]);
+  });
+
+
+  it("refuses to create a file when its parent directory is missing", () => {
+    const result = touch(
+      ctx({
+        currentDirectoryId: "docs",
+        args: ["missing-folder/new.txt"],
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorType).toBe("not_found");
+    expect(result.operations).toEqual([]);
+  });
+
 });
 
 describe("rm", () => {
@@ -115,6 +191,37 @@ describe("rm", () => {
     expect(result.isDestructive).toBe(true);
     expect(result.operations.map((o) => "nodeId" in o && o.nodeId).sort()).toEqual(["docs", "notes"].sort());
   });
+
+  it("refuses to recursively remove the filesystem root", () => {
+    const result = rm(ctx({ args: ["/"], flags: ["-r"] }));
+
+    expect(result.success).toBe(false);
+    expect(result.operations).toEqual([]);
+  });
+
+
+  it("refuses to recursively remove the current directory using dot", () => {
+    const result = rm(
+      ctx({
+        currentDirectoryId: "docs",
+        args: ["."],
+        flags: ["-r"],
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.operations).toEqual([]);
+  });
+
+
+  it("refuses to remove a nonexistent path", () => {
+    const result = rm(ctx({ args: ["missing.txt"] }));
+
+    expect(result.success).toBe(false);
+    expect(result.errorType).toBe("not_found");
+    expect(result.operations).toEqual([]);
+  });
+
 });
 
 describe("cp", () => {
@@ -127,13 +234,119 @@ describe("cp", () => {
     const result = cp(ctx({ args: ["Documents", "Documents2"] }));
     expect(result.errorType).toBe("is_a_directory");
   });
+
+    it("refuses to copy into a path under an existing file", () => {
+    const result = cp(
+      ctx({
+        currentDirectoryId: "docs",
+        args: ["notes.txt", "notes.txt/copy.txt"],
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorType).toBe("not_a_directory");
+    expect(result.operations).toEqual([]);
+  });
+
+    it("refuses to recursively copy a directory into itself", () => {
+    const result = cp(
+      ctx({
+        args: ["Documents", "Documents"],
+        flags: ["-r"],
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.operations).toEqual([]);
+  });
+
+
+  it("recursively copies a directory into an existing directory", () => {
+    const result = cp(
+      ctx({
+        args: ["Documents", "empty"],
+        flags: ["-r"],
+      }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.operations).toContainEqual(
+      expect.objectContaining({
+        type: "createNode",
+        parentId: "empty-dir",
+        nodeType: "directory",
+        name: "Documents",
+      }),
+    );
+  });
+
 });
 
 describe("mv", () => {
   it("moves a node to a new parent", () => {
     const result = mv(ctx({ args: ["Documents", "empty/Documents"] }));
-    expect(result.operations[0]).toMatchObject({ type: "moveNode", nodeId: "docs", newParentId: "empty-dir" });
+    expect(result.operations[0]).toMatchObject({
+      type: "moveNode",
+      nodeId: "docs",
+      newParentId: "empty-dir",
+    });
   });
+
+  it("refuses to move a directory into itself", () => {
+    const result = mv(ctx({ args: ["Documents", "Documents/child"] }));
+
+    expect(result.success).toBe(false);
+    expect(result.operations).toEqual([]);
+  });
+    it("refuses to move a file under an existing file", () => {
+    const result = mv(
+      ctx({
+        currentDirectoryId: "docs",
+        args: ["notes.txt", "notes.txt/child.txt"],
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorType).toBe("not_a_directory");
+    expect(result.operations).toEqual([]);
+  });
+
+  it("refuses to move a node when the destination parent does not exist", () => {
+    const result = mv(
+      ctx({
+        args: ["Documents", "empty/missing-folder/Documents"],
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorType).toBe("not_found");
+    expect(result.operations).toEqual([]);
+  });
+
+  it("moves a node into an existing directory", () => {
+    const result = mv(ctx({ args: ["Documents", "empty"] }));
+
+    expect(result.success).toBe(true);
+    expect(result.operations[0]).toMatchObject({
+      type: "moveNode",
+      nodeId: "docs",
+      newParentId: "empty-dir",
+      newName: "Documents",
+    });
+  });
+
+  it("refuses to move a node onto an existing file", () => {
+    const result = mv(
+      ctx({
+        args: ["empty", "Documents/notes.txt"],
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorType).toBe("already_exists");
+    expect(result.operations).toEqual([]);
+  });
+
 });
 
 describe("ln", () => {
@@ -146,6 +359,37 @@ describe("ln", () => {
     const result = ln(ctx({ args: ["notes.txt", "shortcut.txt"] }));
     expect(result.errorType).toBe("invalid_arguments");
   });
+
+    it("refuses to create a symbolic link under an existing file", () => {
+    const result = ln(
+      ctx({
+        currentDirectoryId: "docs",
+        args: ["notes.txt", "notes.txt/shortcut.txt"],
+        flags: ["-s"],
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorType).toBe("not_a_directory");
+    expect(result.operations).toEqual([]);
+  });
+
+
+  it("refuses to create a symbolic link at an existing path", () => {
+    const result = ln(
+      ctx({
+        currentDirectoryId: "docs",
+        args: ["notes.txt", "notes.txt"],
+        flags: ["-s"],
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorType).toBe("already_exists");
+    expect(result.operations).toEqual([]);
+  });
+
+
 });
 
 describe("tree command", () => {
