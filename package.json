@@ -9,7 +9,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build --workspace=packages/shared-types && npm run build --workspace=packages/command-registry && npm run build --workspace=packages/simulation-engine && npm run build --workspace=apps/api && npm run build --workspace=apps/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "lint": "eslint .",
