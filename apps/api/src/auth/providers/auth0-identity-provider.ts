@@ -26,26 +26,81 @@ interface Auth0Config {
 export class Auth0IdentityProvider implements IdentityProvider {
   constructor(private readonly config: Auth0Config) {}
 
-  async signUp(params: { email: string; password: string }): Promise<IdentityProviderSignUpResult> {
-    const response = await fetch(`https://${this.config.domain}/dbconnections/signup`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client_id: this.config.clientId,
-        email: params.email,
-        password: params.password,
-        connection: "Username-Password-Authentication",
-      }),
-    });
+  async signUp(
+    params: { email: string; password: string }
+  ): Promise<IdentityProviderSignUpResult> {
+    const response = await fetch(
+      `https://${this.config.domain}/dbconnections/signup`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client_id: this.config.clientId,
+          email: params.email,
+          password: params.password,
+          connection: "Username-Password-Authentication",
+        }),
+      }
+    );
 
-    if (response.status === 400) {
-      throw new ConflictError("An account with this email already exists.");
-    }
+    const body = (await response.json().catch(() => ({}))) as {
+      _id?: string;
+      name?: string;
+      code?: string;
+      error?: string;
+      description?: string;
+      message?: string;
+    };
+
     if (!response.ok) {
-      throw new Error(`Auth0 signup failed with status ${response.status}`);
+      const errorDetails = [
+        body.code,
+        body.name,
+        body.error,
+        body.description,
+        body.message,
+      ]
+        .filter((value): value is string => typeof value === "string")
+        .join(" ");
+
+      const safeDescription = (body.description ?? body.message)
+        ?.replaceAll(params.email, "[redacted]")
+        .slice(0, 300);
+
+      console.error("[Auth0 signup rejected]", {
+        status: response.status,
+        name: body.name,
+        code: body.code,
+        error: body.error,
+        description: safeDescription,
+      });
+
+      if (
+        response.status === 400 &&
+        /user_exists|username_exists|already exists/i.test(errorDetails)
+      ) {
+        throw new ConflictError(
+          "An account with this email already exists."
+        );
+      }
+
+      if (response.status === 400) {
+        throw new ValidationError(
+          "Signup was rejected by the identity provider. Please check your details and try again."
+        );
+      }
+
+      throw new Error(
+        `Auth0 signup failed with status ${response.status}`
+      );
     }
 
-    const body = (await response.json()) as { _id: string };
+    if (typeof body._id !== "string") {
+      throw new Error(
+        "Auth0 signup response did not include a user ID"
+      );
+    }
+
     return { externalAuthId: body._id };
   }
 
