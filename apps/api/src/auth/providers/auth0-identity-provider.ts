@@ -63,8 +63,18 @@ export class Auth0IdentityProvider implements IdentityProvider {
         .filter((value): value is string => typeof value === "string")
         .join(" ");
 
-      const safeDescription = (body.description ?? body.message)
-        ?.replaceAll(params.email, "[redacted]")
+      const rawDescription = body.description ?? body.message;
+
+      const descriptionText =
+        typeof rawDescription === "string"
+          ? rawDescription
+          : rawDescription == null
+            ? undefined
+            : JSON.stringify(rawDescription);
+
+      const safeDescription = descriptionText
+        ?.split(params.email)
+        .join("[redacted]")
         .slice(0, 300);
 
       console.error("[Auth0 signup rejected]", {
