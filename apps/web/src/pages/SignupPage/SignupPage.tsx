@@ -61,8 +61,12 @@ export function SignupPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={8}
+            minLength={15}
+            maxLength={72}
           />
+          <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>
+            Password must be between 15 and 72 characters.
+          </p>
           {error && <span style={{ fontSize: "13px", color: "var(--role-danger)" }}>{error}</span>}
           <Button type="submit" variant="primary" isLoading={isSubmitting}>
             Sign up
