@@ -30,16 +30,18 @@ export const authService = {
     return issueSession(user.id);
   },
 
-  async login(params: { email: string; password: string }): Promise<AuthResult> {
-    const provider = getIdentityProvider();
-    // Deliberately calls the provider first: if the provider says the credential is
-    // invalid, we never reveal anything about whether a local user row exists.
-    await provider.login({ email: params.email, password: params.password });
+  async login(params: {
+    email: string;
+    password: string;
+  }): Promise<AuthResult> {
+    const { externalAuthId } = await getIdentityProvider().login({
+      email: params.email,
+      password: params.password,
+    });
 
     const user = await usersRepository.findByEmail(params.email);
-    if (!user) {
-      // Provider validated a credential that has no corresponding local account —
-      // treat identically to a bad credential rather than a distinct error.
+
+    if (!user || user.externalAuthId !== externalAuthId) {
       throw new UnauthorizedError("Invalid email or password.");
     }
 
