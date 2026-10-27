@@ -114,29 +114,53 @@ export class Auth0IdentityProvider implements IdentityProvider {
     return { externalAuthId: body._id };
   }
 
-  async login(params: { email: string; password: string }): Promise<IdentityProviderAuthResult> {
-    const response = await fetch(`https://${this.config.domain}/oauth/token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        grant_type: "http://auth0.com/oauth/grant-type/password-realm",
-        realm: "Username-Password-Authentication",
-        client_id: this.config.clientId,
-        client_secret: this.config.clientSecret,
-        username: params.email,
-        password: params.password,
-        scope: "openid profile email",
-      }),
-    });
+  async login(
+    params: { email: string; password: string }
+  ): Promise<IdentityProviderAuthResult> {
+    const response = await fetch(
+      `https://${this.config.domain}/oauth/token`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          grant_type: "http://auth0.com/oauth/grant-type/password-realm",
+          realm: "Username-Password-Authentication",
+          client_id: this.config.clientId,
+          client_secret: this.config.clientSecret,
+          username: params.email,
+          password: params.password,
+          scope: "openid profile email",
+        }),
+      }
+    );
+
+    const body = (await response.json().catch(() => ({}))) as {
+      access_token?: string;
+      id_token?: string;
+      error?: string;
+      error_description?: string;
+    };
 
     if (!response.ok) {
-      // Deliberately generic — never reveal whether the email exists (account
-      // enumeration prevention), matching the IdentityProvider contract.
+      console.error("[Auth0 login rejected]", {
+        status: response.status,
+        error: body.error,
+        error_description: body.error_description,
+      });
+
       throw new UnauthorizedError("Invalid email or password.");
     }
 
-    const body = (await response.json()) as { access_token: string };
-    const externalAuthId = decodeSubjectFromIdToken(body.access_token);
+    if (!body.id_token) {
+      console.error("[Auth0 login missing ID token]", {
+        hasAccessToken: typeof body.access_token === "string",
+      });
+
+      throw new Error("Auth0 did not return an ID token.");
+    }
+
+    const externalAuthId = decodeSubjectFromIdToken(body.id_token);
+
     return { externalAuthId };
   }
 
