@@ -111,7 +111,11 @@ export class Auth0IdentityProvider implements IdentityProvider {
       );
     }
 
-    return { externalAuthId: body._id };
+    return {
+      externalAuthId: body._id.startsWith("auth0|")
+        ? body._id
+        : `auth0|${body._id}`,
+    };
   }
 
   async login(

@@ -41,7 +41,18 @@ export const authService = {
 
     const user = await usersRepository.findByEmail(params.email);
 
-    if (!user || user.externalAuthId !== externalAuthId) {
+    const storedExternalAuthId = user?.externalAuthId;
+
+    const normalizedStoredExternalAuthId =
+      storedExternalAuthId &&
+      !storedExternalAuthId.startsWith("auth0|")
+        ? `auth0|${storedExternalAuthId}`
+        : storedExternalAuthId;
+
+    if (
+      !user ||
+      normalizedStoredExternalAuthId !== externalAuthId
+    ) {
       throw new UnauthorizedError("Invalid email or password.");
     }
 
