@@ -13,8 +13,8 @@ import { registerLearningRoutes } from "./learning/learning.routes.js";
 
 import { env } from "./config/env.js";
 
-export async function buildApp(options: { logger?: boolean } = {}): Promise<FastifyInstance> {
-  const app = Fastify({ logger: options.logger ?? true });
+export async function configureApp(app: FastifyInstance): Promise<FastifyInstance> {
+
 
   await app.register(cors, {
     origin: env.WEB_ORIGIN,
@@ -43,4 +43,11 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
   }
 
   return app;
+}
+
+export async function buildApp(
+  options: { logger?: boolean } = {},
+): Promise<FastifyInstance> {
+  const app = Fastify({ logger: options.logger ?? true });
+  return configureApp(app);
 }
