@@ -1,8 +1,8 @@
-import { buildApp } from "./app.js";
+import { buildApp } from "./application.js";
 import { env } from "./config/env.js";
 
 // Server startup only — app construction (routes, plugins, error handling) lives in
-// app.js so it can be built and tested via Fastify's inject() without binding a port.
+// application.js so it can be built and tested via Fastify's inject() without binding a port.
 
 const app = await buildApp();
 

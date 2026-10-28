@@ -7,7 +7,7 @@ import {
   it,
 } from "vitest";
 import type { FastifyInstance } from "fastify";
-import { buildApp } from "../app.js";
+import { buildApp } from "../application.js";
 import { closeDb } from "../db/client.js";
 
 describe("Learning progress API", () => {
